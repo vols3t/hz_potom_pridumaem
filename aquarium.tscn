@@ -1,0 +1,66 @@
+[gd_scene format=3 uid="uid://uxyui01ie1go"]
+
+[ext_resource type="PackedScene" uid="uid://bgiqlv2kr3ftq" path="res://node_2d.tscn" id="1_qnukr"]
+[ext_resource type="Texture2D" uid="uid://ddxmxgyyfy8mn" path="res://icon.svg" id="1_vgbo8"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_vgbo8"]
+size = Vector2(800, 10)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_qnukr"]
+size = Vector2(10, 450)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ojo41"]
+size = Vector2(800, 10)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_thxjk"]
+size = Vector2(10, 450)
+
+[node name="Aquarium" type="Node2D" unique_id=1470860604]
+
+[node name="top" type="StaticBody2D" parent="." unique_id=1418320773]
+position = Vector2(580, 128)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="top" unique_id=2046107268]
+position = Vector2(2.635, 0)
+shape = SubResource("RectangleShape2D_vgbo8")
+
+[node name="Sprite2D" type="Sprite2D" parent="top" unique_id=1640571954]
+position = Vector2(5, 0)
+scale = Vector2(6.25, 0.095)
+texture = ExtResource("1_vgbo8")
+
+[node name="right" type="StaticBody2D" parent="." unique_id=1982523293]
+position = Vector2(982, 349)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="right" unique_id=1430869989]
+shape = SubResource("RectangleShape2D_qnukr")
+
+[node name="Sprite2D" type="Sprite2D" parent="right" unique_id=409950794]
+scale = Vector2(0.09, 3.53)
+texture = ExtResource("1_vgbo8")
+
+[node name="bottom" type="StaticBody2D" parent="." unique_id=266904037]
+position = Vector2(585, 567)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="bottom" unique_id=464442893]
+shape = SubResource("RectangleShape2D_ojo41")
+
+[node name="Sprite2D" type="Sprite2D" parent="bottom" unique_id=144333941]
+position = Vector2(0.99999994, 0)
+scale = Vector2(6.265, -0.105)
+texture = ExtResource("1_vgbo8")
+
+[node name="left" type="StaticBody2D" parent="." unique_id=1868568441]
+position = Vector2(187, 348)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="left" unique_id=1231082949]
+shape = SubResource("RectangleShape2D_thxjk")
+
+[node name="Sprite2D" type="Sprite2D" parent="left" unique_id=571205620]
+scale = Vector2(0.09, 3.545)
+texture = ExtResource("1_vgbo8")
+
+[node name="fish" parent="." unique_id=574454736 instance=ExtResource("1_qnukr")]
+
+[node name="fish2" parent="." unique_id=1526009372 instance=ExtResource("1_qnukr")]
+position = Vector2(767, 346)
