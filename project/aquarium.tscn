@@ -2,6 +2,10 @@
 
 [ext_resource type="PackedScene" uid="uid://bgiqlv2kr3ftq" path="res://node_2d.tscn" id="1_qnukr"]
 [ext_resource type="Texture2D" uid="uid://ddxmxgyyfy8mn" path="res://icon.svg" id="1_vgbo8"]
+[ext_resource type="Script" uid="uid://brpiaigkw02tp" path="res://Hud.cs" id="3_ojo41"]
+[ext_resource type="Script" uid="uid://2u6f6w33m2yr" path="res://ShopPanel.cs" id="4_5kyaj"]
+[ext_resource type="PackedScene" uid="uid://c74odbuwg5u0n" path="res://shop_item.tscn" id="5_6hkmb"]
+[ext_resource type="Resource" uid="uid://b2tp8t2k5dwj0" path="res://goldfish.tres" id="6_3tg85"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_vgbo8"]
 size = Vector2(800, 10)
@@ -18,7 +22,7 @@ size = Vector2(10, 450)
 [node name="Aquarium" type="Node2D" unique_id=1470860604]
 
 [node name="top" type="StaticBody2D" parent="." unique_id=1418320773]
-position = Vector2(580, 128)
+position = Vector2(562, 128)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="top" unique_id=2046107268]
 position = Vector2(2.635, 0)
@@ -30,7 +34,7 @@ scale = Vector2(6.25, 0.095)
 texture = ExtResource("1_vgbo8")
 
 [node name="right" type="StaticBody2D" parent="." unique_id=1982523293]
-position = Vector2(982, 349)
+position = Vector2(968, 348)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="right" unique_id=1430869989]
 shape = SubResource("RectangleShape2D_qnukr")
@@ -40,7 +44,7 @@ scale = Vector2(0.09, 3.53)
 texture = ExtResource("1_vgbo8")
 
 [node name="bottom" type="StaticBody2D" parent="." unique_id=266904037]
-position = Vector2(585, 567)
+position = Vector2(566, 567)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="bottom" unique_id=464442893]
 shape = SubResource("RectangleShape2D_ojo41")
@@ -51,7 +55,7 @@ scale = Vector2(6.265, -0.105)
 texture = ExtResource("1_vgbo8")
 
 [node name="left" type="StaticBody2D" parent="." unique_id=1868568441]
-position = Vector2(187, 348)
+position = Vector2(166, 348)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="left" unique_id=1231082949]
 shape = SubResource("RectangleShape2D_thxjk")
@@ -61,19 +65,27 @@ scale = Vector2(0.09, 3.545)
 texture = ExtResource("1_vgbo8")
 
 [node name="fish" parent="." unique_id=574454736 instance=ExtResource("1_qnukr")]
+position = Vector2(655, 338)
 
-[node name="fish2" parent="." unique_id=1526009372 instance=ExtResource("1_qnukr")]
-position = Vector2(767, 346)
+[node name="fish2" parent="." unique_id=273007973 instance=ExtResource("1_qnukr")]
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=865599142]
 
-[node name="HUD" type="Control" parent="UI" unique_id=1692696274]
+[node name="HUD" type="Control" parent="UI" unique_id=1692696274 node_paths=PackedStringArray("MoneyLabel", "IncomeLabel", "FishCountLabel", "ShopBtn", "CurrentFishBtn", "BestiaryBtn", "ShopPanel")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("3_ojo41")
+MoneyLabel = NodePath("TopPanel/MarginContainer/HBoxContainer/ActualMoney")
+IncomeLabel = NodePath("TopPanel/MarginContainer/HBoxContainer/IncMoney")
+FishCountLabel = NodePath("TopPanel/MarginContainer/HBoxContainer/FishCount")
+ShopBtn = NodePath("RightPanel/MarginContainer/VBoxContainer/ShopButton")
+CurrentFishBtn = NodePath("RightPanel/MarginContainer/VBoxContainer/MyFishButton")
+BestiaryBtn = NodePath("RightPanel/MarginContainer/VBoxContainer/BestiaryButton")
+ShopPanel = NodePath("ShopPanel")
 
 [node name="TopPanel" type="PanelContainer" parent="UI/HUD" unique_id=2111700529]
 layout_mode = 1
@@ -142,26 +154,25 @@ theme_override_constants/separation = 10
 [node name="ShopButton" type="Button" parent="UI/HUD/RightPanel/MarginContainer/VBoxContainer" unique_id=615211242]
 layout_mode = 2
 size_flags_vertical = 3
-text = "Shop
+text = "магазин
 "
 
 [node name="BestiaryButton" type="Button" parent="UI/HUD/RightPanel/MarginContainer/VBoxContainer" unique_id=40795842]
 layout_mode = 2
 size_flags_vertical = 3
-text = "bestiary"
+text = "бестиарий"
 
 [node name="MyFishButton" type="Button" parent="UI/HUD/RightPanel/MarginContainer/VBoxContainer" unique_id=2064516973]
 layout_mode = 2
 size_flags_vertical = 3
-text = "ActualFish"
+text = "мои рыбки"
 
 [node name="SettingButton" type="Button" parent="UI/HUD/RightPanel/MarginContainer/VBoxContainer" unique_id=1805859760]
 layout_mode = 2
 size_flags_vertical = 3
-text = "Setting
-"
+text = "настройки"
 
-[node name="PanelContainer" type="PanelContainer" parent="UI/HUD" unique_id=2125332881]
+[node name="FoodPanel" type="PanelContainer" parent="UI/HUD" unique_id=2125332881]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.019000001
@@ -173,13 +184,79 @@ offset_right = 10.343994
 offset_bottom = -121.0
 grow_vertical = 2
 
-[node name="MarginContainer" type="MarginContainer" parent="UI/HUD/PanelContainer" unique_id=718433738]
+[node name="MarginContainer" type="MarginContainer" parent="UI/HUD/FoodPanel" unique_id=718433738]
 layout_mode = 2
 theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="Button" type="Button" parent="UI/HUD/PanelContainer/MarginContainer" unique_id=1917734140]
+[node name="FoodButton" type="Button" parent="UI/HUD/FoodPanel/MarginContainer" unique_id=1917734140]
 layout_mode = 2
-text = "Food"
+text = "еда
+"
+
+[node name="ShopPanel" type="PanelContainer" parent="UI/HUD" unique_id=790116681 node_paths=PackedStringArray("ItemList", "FishTabBtn", "FoodTabBtn", "OtherTabBtn", "Aquarium")]
+visible = false
+layout_mode = 1
+anchors_preset = -1
+anchor_bottom = 0.99500006
+offset_top = 100.0
+offset_right = 300.0
+offset_bottom = 0.2399292
+grow_vertical = 2
+script = ExtResource("4_5kyaj")
+ShopItemScene = ExtResource("5_6hkmb")
+AvailableFish = Array[Object]([ExtResource("6_3tg85")])
+ItemList = NodePath("MarginContainer/VBoxContainer/ScrollContainer/ItemList")
+FishTabBtn = NodePath("MarginContainer/VBoxContainer/HBoxContainer/FishTabBtn")
+FoodTabBtn = NodePath("MarginContainer/VBoxContainer/HBoxContainer/FoodTabBtn")
+OtherTabBtn = NodePath("MarginContainer/VBoxContainer/HBoxContainer/OtherTabBtn")
+Aquarium = NodePath("../../..")
+SpawnAreaMin = Vector2(200, 160)
+SpawnAreaMax = Vector2(930, 530)
+
+[node name="MarginContainer" type="MarginContainer" parent="UI/HUD/ShopPanel" unique_id=1205637690]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/HUD/ShopPanel/MarginContainer" unique_id=30575671]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="UI/HUD/ShopPanel/MarginContainer/VBoxContainer" unique_id=258715677]
+layout_mode = 2
+size_flags_vertical = 0
+
+[node name="FishTabBtn" type="Button" parent="UI/HUD/ShopPanel/MarginContainer/VBoxContainer/HBoxContainer" unique_id=852438585]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Рыбки"
+expand_icon = true
+
+[node name="FoodTabBtn" type="Button" parent="UI/HUD/ShopPanel/MarginContainer/VBoxContainer/HBoxContainer" unique_id=60885801]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Еда"
+
+[node name="OtherTabBtn" type="Button" parent="UI/HUD/ShopPanel/MarginContainer/VBoxContainer/HBoxContainer" unique_id=682194392]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Прочее"
+
+[node name="HSeparator" type="HSeparator" parent="UI/HUD/ShopPanel/MarginContainer/VBoxContainer" unique_id=1853141659]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="UI/HUD/ShopPanel/MarginContainer/VBoxContainer" unique_id=18513217]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ItemList" type="VBoxContainer" parent="UI/HUD/ShopPanel/MarginContainer/VBoxContainer/ScrollContainer" unique_id=428749993]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3

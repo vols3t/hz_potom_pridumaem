@@ -1,0 +1,39 @@
+[gd_scene format=3 uid="uid://c74odbuwg5u0n"]
+
+[ext_resource type="Script" uid="uid://btrffcj07sour" path="res://ShopItem.cs" id="1_glqc6"]
+
+[node name="ShopItem" type="Button" unique_id=1266225310 node_paths=PackedStringArray("IconRect", "NameLabel", "PriceLabel")]
+custom_minimum_size = Vector2(300, 70)
+offset_right = 8.0
+offset_bottom = 8.0
+script = ExtResource("1_glqc6")
+IconRect = NodePath("HBoxContainer/TextureRect")
+NameLabel = NodePath("HBoxContainer/VBoxContainer/Name-descr")
+PriceLabel = NodePath("HBoxContainer/VBoxContainer/Price")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="." unique_id=1593814790]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 5
+
+[node name="TextureRect" type="TextureRect" parent="HBoxContainer" unique_id=2130104837]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer" unique_id=76503249]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Name-descr" type="Label" parent="HBoxContainer/VBoxContainer" unique_id=1049940578]
+layout_mode = 2
+size_flags_vertical = 6
+
+[node name="Price" type="Label" parent="HBoxContainer/VBoxContainer" unique_id=1099397476]
+layout_mode = 2
+size_flags_vertical = 6

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="FishData" format=3 uid="uid://b2tp8t2k5dwj0"]
+
+[ext_resource type="PackedScene" uid="uid://bgiqlv2kr3ftq" path="res://node_2d.tscn" id="1_f6ts0"]
+[ext_resource type="Script" uid="uid://colku0fklb2ii" path="res://FishData.cs" id="1_gyri2"]
+[ext_resource type="Texture2D" uid="uid://ddxmxgyyfy8mn" path="res://icon.svg" id="2_hhxm2"]
+
+[resource]
+script = ExtResource("1_gyri2")
+FishName = "Золотая рыбка"
+Price = 20
+IncomePerSec = 5.0
+Icon = ExtResource("2_hhxm2")
+FishScene = ExtResource("1_f6ts0")
+metadata/_custom_type_script = "uid://colku0fklb2ii"
