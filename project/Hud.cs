@@ -1,11 +1,14 @@
-using Godot;
-using System;
+﻿using Godot;
 
 public partial class Hud : Control
 {
     [Export] public Label MoneyLabel;
     [Export] public Label IncomeLabel;
     [Export] public Label FishCountLabel;
+
+    [Export] public Label CommonCountLabel;
+    [Export] public Label RareCountLabel;
+    [Export] public Label UniqueCountLabel;
 
     [Export] public Button ShopBtn;
     [Export] public Button CurrentFishBtn;
@@ -21,23 +24,42 @@ public partial class Hud : Control
 
     public override void _Process(double delta)
     {
-        if (GameManager.Instance != null && MoneyLabel != null)
-        {
-            MoneyLabel.Text = $"Деньги: ${GameManager.Instance.Money.ToString("F0")}";
-            IncomeLabel.Text = $"+${GameManager.Instance.IncomePerSecond.ToString("F1")}/сек";
-            FishCountLabel.Text = $"Рыбок: {GameManager.Instance.FishCount}";
-        }
-    }
-    
-    private void OnCurrentFishPressed() =>
-        GD.Print("Мои рыбки");
+        var gm = GameManager.Instance;
+        if (gm == null)
+            return;
 
-    private void OnBestiaryPressed() =>
-        GD.Print("Бестиарий");
+        if (MoneyLabel != null)
+            MoneyLabel.Text = $"Coins: {gm.Money:F0}";
+
+        if (IncomeLabel != null)
+            IncomeLabel.Text = gm.LastEventText;
+
+        if (FishCountLabel != null)
+            FishCountLabel.Text = $"Fish: {gm.FishCount}";
+
+        if (CommonCountLabel != null)
+            CommonCountLabel.Text = $"Common: {gm.GetFishCountByRarity(FishRarity.Common)}";
+
+        if (RareCountLabel != null)
+            RareCountLabel.Text = $"Rare: {gm.GetFishCountByRarity(FishRarity.Rare)}";
+
+        if (UniqueCountLabel != null)
+            UniqueCountLabel.Text = $"Unique: {gm.GetFishCountByRarity(FishRarity.Unique)}";
+    }
+
+    private void OnCurrentFishPressed()
+    {
+        GD.Print("Current fish list UI can be added here");
+    }
+
+    private void OnBestiaryPressed()
+    {
+        GD.Print("Bestiary UI can be added here");
+    }
 
     private void OnShopPressed()
     {
-        if (ShopPanel != null) ShopPanel.Visible = !ShopPanel.Visible;
-        GD.Print("Открываем магазин");
+        if (ShopPanel != null)
+            ShopPanel.Visible = !ShopPanel.Visible;
     }
 }

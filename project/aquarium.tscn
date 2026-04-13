@@ -5,7 +5,9 @@
 [ext_resource type="Script" uid="uid://brpiaigkw02tp" path="res://Hud.cs" id="3_ojo41"]
 [ext_resource type="Script" uid="uid://2u6f6w33m2yr" path="res://ShopPanel.cs" id="4_5kyaj"]
 [ext_resource type="PackedScene" uid="uid://c74odbuwg5u0n" path="res://shop_item.tscn" id="5_6hkmb"]
-[ext_resource type="Resource" uid="uid://b2tp8t2k5dwj0" path="res://goldfish.tres" id="6_3tg85"]
+[ext_resource type="Resource" path="res://goldfish.tres" id="6_3tg85"]
+[ext_resource type="Resource" path="res://neonfish.tres" id="7_1r8n5"]
+[ext_resource type="Resource" path="res://uniquefish.tres" id="8_4xpxf"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_vgbo8"]
 size = Vector2(800, 10)
@@ -66,8 +68,10 @@ texture = ExtResource("1_vgbo8")
 
 [node name="fish" parent="." unique_id=574454736 instance=ExtResource("1_qnukr")]
 position = Vector2(655, 338)
+InitialFishData = ExtResource("6_3tg85")
 
 [node name="fish2" parent="." unique_id=273007973 instance=ExtResource("1_qnukr")]
+InitialFishData = ExtResource("7_1r8n5")
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=865599142]
 
@@ -207,7 +211,7 @@ offset_bottom = 0.2399292
 grow_vertical = 2
 script = ExtResource("4_5kyaj")
 ShopItemScene = ExtResource("5_6hkmb")
-AvailableFish = Array[Object]([ExtResource("6_3tg85")])
+AvailableFish = Array[Object]([ExtResource("6_3tg85"), ExtResource("7_1r8n5"), ExtResource("8_4xpxf")])
 ItemList = NodePath("MarginContainer/VBoxContainer/ScrollContainer/ItemList")
 FishTabBtn = NodePath("MarginContainer/VBoxContainer/HBoxContainer/FishTabBtn")
 FoodTabBtn = NodePath("MarginContainer/VBoxContainer/HBoxContainer/FoodTabBtn")

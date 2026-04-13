@@ -1,4 +1,4 @@
-using Godot;
+﻿using Godot;
 using System;
 
 public partial class ShopItem : Button
@@ -19,11 +19,17 @@ public partial class ShopItem : Button
             IconRect.Texture = data.Icon;
 
         if (NameLabel != null)
-            NameLabel.Text = data.FishName;
+            NameLabel.Text = $"{data.FishName} ({data.Rarity})";
 
         if (PriceLabel != null)
-            PriceLabel.Text = $"${data.Price} | +${data.IncomePerSec}/сек";
+        {
+            var rarityMult = data.GetRarityMultiplier();
+            PriceLabel.Text =
+                $"Price: {data.Price} | Stage rewards: Teen {data.GetStageReward(FishGrowthStage.Teen)} / " +
+                $"Adult {data.GetStageReward(FishGrowthStage.Adult)} | Rarity x{rarityMult:F1}";
+        }
 
+        Pressed -= OnPressed;
         Pressed += OnPressed;
     }
 
