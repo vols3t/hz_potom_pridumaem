@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="FishMutation" format=3 uid="uid://cnhg0refr5utr"]
+
+[ext_resource type="Script" uid="uid://ckqxpxh5wcec7" path="res://FishMutation.cs" id="1_4818v"]
+
+[resource]
+script = ExtResource("1_4818v")
+MutationName = "fat"
+Description = "Рыба объелась и стала толстой"
+ColorTint = Color(1, 0.97633153, 0.9063318, 1)
+ScaleModifier = Vector2(1.3, 1.4)
+SpeedMultiplier = 0.7
+IncomeMultiplier = 1.3
+Trigger = 1
+TriggerThreshold = 20.0

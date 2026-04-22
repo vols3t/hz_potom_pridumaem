@@ -196,7 +196,7 @@ public partial class GameManager : Node
     {
         _mutations.Clear();
 
-        const string mutationsDirPath = "res://Data/Mutations";
+        const string mutationsDirPath = "res://assets/mutations";
 
         if (!DirAccess.DirExistsAbsolute(mutationsDirPath))
         {

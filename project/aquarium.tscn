@@ -1,20 +1,19 @@
 [gd_scene format=3 uid="uid://uxyui01ie1go"]
 
 [ext_resource type="PackedScene" uid="uid://bgiqlv2kr3ftq" path="res://node_2d.tscn" id="1_qnukr"]
-[ext_resource type="Texture2D" uid="uid://8d1qu1iw52ox" path="res://assets/fishes/medium/clown-fish-medium.png" id="1_vgbo8"]
 [ext_resource type="Script" uid="uid://brpiaigkw02tp" path="res://Hud.cs" id="3_ojo41"]
 [ext_resource type="Script" uid="uid://2u6f6w33m2yr" path="res://ShopPanel.cs" id="4_5kyaj"]
 [ext_resource type="PackedScene" uid="uid://c74odbuwg5u0n" path="res://shop_item.tscn" id="5_6hkmb"]
 [ext_resource type="Resource" path="res://goldfish.tres" id="6_3tg85"]
 [ext_resource type="Resource" path="res://neonfish.tres" id="7_1r8n5"]
-[ext_resource type="Resource" uid="uid://8d1qu1iw52ox" path="res://assets/fishes/medium/clown-fish-medium.png" id="8_4xpxf"]
+[ext_resource type="Texture2D" uid="uid://8d1qu1iw52ox" path="res://assets/fishes/medium/clown-fish-medium.png" id="8_4xpxf"]
 [ext_resource type="Texture2D" uid="uid://b2lxdki86em3g" path="res://assets/aquarium.png" id="9_u4mj4"]
 [ext_resource type="Texture2D" uid="uid://hvplmapx3mk3" path="res://assets/store/store-button.png" id="10_gxrfh"]
 [ext_resource type="Texture2D" uid="uid://27rxv26ryijx" path="res://assets/bestiary/bestiary-button.png" id="11_dv6mb"]
 [ext_resource type="Texture2D" uid="uid://cm6og30fwok2w" path="res://assets/my-fishes-button.png" id="12_2v9ld"]
 [ext_resource type="Texture2D" uid="uid://dq4qhcdi2vyxn" path="res://assets/settings/settings-button.png" id="13_q8lvp"]
 [ext_resource type="Texture2D" uid="uid://cn43f5j7fxjr2" path="res://assets/meal/meal-button.png" id="14_6mkvp"]
-[ext_resource type="Script" path="res://CoinDisplay.cs" id="15_4lbga"]
+[ext_resource type="Script" uid="uid://cimi5pp6hj2p0" path="res://CoinDisplay.cs" id="15_4lbga"]
 [ext_resource type="Texture2D" uid="uid://bxknin0vampj5" path="res://assets/coins/coins.png" id="16_t0uma"]
 [ext_resource type="Texture2D" uid="uid://hw7ukhffro40" path="res://assets/fish-counts.png" id="17_vqk9c"]
 
@@ -33,8 +32,8 @@ size = Vector2(10, 545)
 [node name="Aquarium" type="Node2D" unique_id=1470860604]
 
 [node name="Background" type="Sprite2D" parent="." unique_id=2056111234]
-position = Vector2(719, 434)
 z_index = -100
+position = Vector2(719, 434)
 texture = ExtResource("9_u4mj4")
 
 [node name="top" type="StaticBody2D" parent="." unique_id=1418320773]
@@ -45,7 +44,7 @@ shape = SubResource("RectangleShape2D_vgbo8")
 
 [node name="Sprite2D" type="Sprite2D" parent="top" unique_id=1640571954]
 visible = false
-texture = ExtResource("1_vgbo8")
+texture = ExtResource("8_4xpxf")
 
 [node name="right" type="StaticBody2D" parent="." unique_id=1982523293]
 position = Vector2(1395, 367.5)
@@ -55,7 +54,7 @@ shape = SubResource("RectangleShape2D_qnukr")
 
 [node name="Sprite2D" type="Sprite2D" parent="right" unique_id=409950794]
 visible = false
-texture = ExtResource("1_vgbo8")
+texture = ExtResource("8_4xpxf")
 
 [node name="bottom" type="StaticBody2D" parent="." unique_id=266904037]
 position = Vector2(718.5, 640)
@@ -65,7 +64,7 @@ shape = SubResource("RectangleShape2D_ojo41")
 
 [node name="Sprite2D" type="Sprite2D" parent="bottom" unique_id=144333941]
 visible = false
-texture = ExtResource("1_vgbo8")
+texture = ExtResource("8_4xpxf")
 
 [node name="left" type="StaticBody2D" parent="." unique_id=1868568441]
 position = Vector2(42, 367.5)
@@ -75,7 +74,7 @@ shape = SubResource("RectangleShape2D_thxjk")
 
 [node name="Sprite2D" type="Sprite2D" parent="left" unique_id=571205620]
 visible = false
-texture = ExtResource("1_vgbo8")
+texture = ExtResource("8_4xpxf")
 
 [node name="fish" parent="." unique_id=574454736 instance=ExtResource("1_qnukr")]
 position = Vector2(720, 430)
@@ -87,7 +86,7 @@ InitialFishData = ExtResource("7_1r8n5")
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=865599142]
 
-[node name="HUD" type="Control" parent="UI" unique_id=1692696274 node_paths=PackedStringArray("MoneyLabel", "CoinsDisplay", "IncomeLabel", "FishCountLabel", "FishCountDisplay", "ShopBtn", "CurrentFishBtn", "BestiaryBtn", "ShopPanel")]
+[node name="HUD" type="Control" parent="UI" unique_id=1692696274 node_paths=PackedStringArray("MoneyLabel", "IncomeLabel", "FishCountLabel", "ShopBtn", "CurrentFishBtn", "BestiaryBtn", "ShopPanel")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -96,10 +95,8 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("3_ojo41")
 MoneyLabel = NodePath("TopPanel/MarginContainer/HBoxContainer/ActualMoney")
-CoinsDisplay = NodePath("TopPanel/MarginContainer/HBoxContainer/CoinsDisplay")
 IncomeLabel = NodePath("TopPanel/MarginContainer/HBoxContainer/IncMoney")
 FishCountLabel = NodePath("TopPanel/MarginContainer/HBoxContainer/FishCount")
-FishCountDisplay = NodePath("TopPanel/MarginContainer/HBoxContainer/FishCountDisplay")
 ShopBtn = NodePath("RightPanel/MarginContainer/VBoxContainer/ShopButton")
 CurrentFishBtn = NodePath("RightPanel/MarginContainer/VBoxContainer/MyFishButton")
 BestiaryBtn = NodePath("RightPanel/MarginContainer/VBoxContainer/BestiaryButton")
@@ -124,9 +121,9 @@ theme_override_constants/margin_bottom = 25
 layout_mode = 2
 
 [node name="CoinsDisplay" type="Control" parent="UI/HUD/TopPanel/MarginContainer/HBoxContainer" unique_id=2083345013 node_paths=PackedStringArray("BackgroundRect", "DigitsContainer")]
+clip_contents = true
 custom_minimum_size = Vector2(420, 92)
 layout_mode = 2
-clip_contents = true
 script = ExtResource("15_4lbga")
 BackgroundRect = NodePath("BackgroundRect")
 DigitsContainer = NodePath("DigitsContainer")
@@ -149,10 +146,6 @@ anchor_left = 0.56
 anchor_top = 0.23
 anchor_right = 0.86
 anchor_bottom = 0.77
-offset_left = 0.0
-offset_top = 0.0
-offset_right = 0.0
-offset_bottom = 0.0
 theme_override_constants/separation = -1
 
 [node name="ActualMoney" type="Label" parent="UI/HUD/TopPanel/MarginContainer/HBoxContainer" unique_id=469211526]
@@ -169,14 +162,13 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="FishCountDisplay" type="Control" parent="UI/HUD/TopPanel/MarginContainer/HBoxContainer" unique_id=2083345016 node_paths=PackedStringArray("BackgroundRect", "DigitsContainer")]
+clip_contents = true
 custom_minimum_size = Vector2(420, 92)
 layout_mode = 2
-clip_contents = true
 script = ExtResource("15_4lbga")
 BackgroundRect = NodePath("BackgroundRect")
 DigitsContainer = NodePath("DigitsContainer")
 DigitHeight = 28
-DigitSpacing = -1
 
 [node name="BackgroundRect" type="TextureRect" parent="UI/HUD/TopPanel/MarginContainer/HBoxContainer/FishCountDisplay" unique_id=2083345017]
 layout_mode = 1
@@ -196,15 +188,13 @@ anchor_left = 0.56
 anchor_top = 0.24
 anchor_right = 0.94
 anchor_bottom = 0.78
-offset_left = 0.0
-offset_top = 0.0
-offset_right = 0.0
-offset_bottom = 0.0
 theme_override_constants/separation = -1
+
 [node name="FishCount" type="Label" parent="UI/HUD/TopPanel/MarginContainer/HBoxContainer" unique_id=711037258]
 visible = false
 layout_mode = 2
 text = "Fish: 0"
+
 [node name="Spacer2" type="Control" parent="UI/HUD/TopPanel/MarginContainer/HBoxContainer" unique_id=6615171]
 layout_mode = 2
 size_flags_horizontal = 3
@@ -219,10 +209,6 @@ anchor_left = 0.03
 anchor_top = 0.84
 anchor_right = 0.97
 anchor_bottom = 0.99
-offset_left = 0.0
-offset_top = 0.0
-offset_right = 0.0
-offset_bottom = 0.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -244,6 +230,7 @@ size_flags_horizontal = 3
 texture_normal = ExtResource("10_gxrfh")
 ignore_texture_size = true
 stretch_mode = 5
+
 [node name="BestiaryButton" type="TextureButton" parent="UI/HUD/RightPanel/MarginContainer/VBoxContainer" unique_id=40795842]
 custom_minimum_size = Vector2(220, 82)
 layout_mode = 2
@@ -251,6 +238,7 @@ size_flags_horizontal = 3
 texture_normal = ExtResource("11_dv6mb")
 ignore_texture_size = true
 stretch_mode = 5
+
 [node name="MyFishButton" type="TextureButton" parent="UI/HUD/RightPanel/MarginContainer/VBoxContainer" unique_id=2064516973]
 custom_minimum_size = Vector2(220, 82)
 layout_mode = 2
@@ -258,6 +246,7 @@ size_flags_horizontal = 3
 texture_normal = ExtResource("12_2v9ld")
 ignore_texture_size = true
 stretch_mode = 5
+
 [node name="SettingButton" type="TextureButton" parent="UI/HUD/RightPanel/MarginContainer/VBoxContainer" unique_id=1805859760]
 custom_minimum_size = Vector2(220, 82)
 layout_mode = 2
@@ -265,6 +254,15 @@ size_flags_horizontal = 3
 texture_normal = ExtResource("13_q8lvp")
 ignore_texture_size = true
 stretch_mode = 5
+
+[node name="FoodButton" type="TextureButton" parent="UI/HUD/RightPanel/MarginContainer/VBoxContainer" unique_id=1917734140]
+custom_minimum_size = Vector2(220, 82)
+layout_mode = 2
+size_flags_horizontal = 3
+texture_normal = ExtResource("14_6mkvp")
+ignore_texture_size = true
+stretch_mode = 5
+
 [node name="FoodPanel" type="PanelContainer" parent="UI/HUD" unique_id=2125332881]
 visible = false
 layout_mode = 1
@@ -285,13 +283,6 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="FoodButton" type="TextureButton" parent="UI/HUD/RightPanel/MarginContainer/VBoxContainer" unique_id=1917734140]
-custom_minimum_size = Vector2(220, 82)
-layout_mode = 2
-size_flags_horizontal = 3
-texture_normal = ExtResource("14_6mkvp")
-ignore_texture_size = true
-stretch_mode = 5
 [node name="ShopPanel" type="PanelContainer" parent="UI/HUD" unique_id=790116681 node_paths=PackedStringArray("ItemList", "FishTabBtn", "FoodTabBtn", "OtherTabBtn", "Aquarium")]
 visible = false
 layout_mode = 1
