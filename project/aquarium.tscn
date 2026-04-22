@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://uxyui01ie1go"]
 
 [ext_resource type="PackedScene" uid="uid://bgiqlv2kr3ftq" path="res://node_2d.tscn" id="1_qnukr"]
-[ext_resource type="Texture2D" uid="uid://ddxmxgyyfy8mn" path="res://icon.svg" id="1_vgbo8"]
+[ext_resource type="Texture2D" uid="uid://ddxmxgyyfy8mn" path="res://assets/fishes/medium/clown-fish-medium.png" id="1_vgbo8"]
 [ext_resource type="Script" uid="uid://brpiaigkw02tp" path="res://Hud.cs" id="3_ojo41"]
 [ext_resource type="Script" uid="uid://2u6f6w33m2yr" path="res://ShopPanel.cs" id="4_5kyaj"]
 [ext_resource type="PackedScene" uid="uid://c74odbuwg5u0n" path="res://shop_item.tscn" id="5_6hkmb"]
@@ -358,3 +358,4 @@ size_flags_vertical = 3
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+

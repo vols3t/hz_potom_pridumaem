@@ -821,7 +821,7 @@ public partial class ShopPanel : PanelContainer
         buyButton.AddThemeFontSizeOverride("font_size", 17);
 
         var canAfford = GameManager.Instance?.CanAfford(entry.Price) ?? false;
-        var validFishOffer = entry.Category != ShopCategory.Fish || entry.FishTemplate != null;
+        var validFishOffer = entry.Category != ShopCategory.Fish || ResolveFishTemplate(entry) != null;
         buyButton.Disabled = !canAfford || !validFishOffer;
         if (!canAfford)
             buyButton.Text = "дорого";
@@ -854,13 +854,14 @@ public partial class ShopPanel : PanelContainer
         bool purchased;
         if (entry.Category == ShopCategory.Fish)
         {
-            if (entry.FishTemplate == null)
+            var fishTemplate = ResolveFishTemplate(entry);
+            if (fishTemplate == null)
             {
                 _statusLabel.Text = "Нельзя купить эту рыбу: отсутствует шаблон спавна";
                 return;
             }
 
-            purchased = gm.TryBuyFishOffer(entry.FishTemplate, entry.Price, entry.Name);
+            purchased = gm.TryBuyFishOffer(fishTemplate, entry.Price, entry.Name);
         }
         else
         {
@@ -874,6 +875,59 @@ public partial class ShopPanel : PanelContainer
         }
 
         RefreshAll();
+    }
+
+    private FishData ResolveFishTemplate(ShopEntry entry)
+    {
+        if (entry?.Category != ShopCategory.Fish)
+            return null;
+
+        if (entry.FishTemplate != null && entry.FishTemplate.FishScene != null)
+            return entry.FishTemplate;
+
+        var validFish = GetValidFishTemplates();
+        if (validFish.Count == 0)
+            validFish = GetFallbackFishTemplates();
+        if (validFish.Count == 0)
+            return null;
+
+        var index = ExtractEntryIndex(entry.Id);
+        if (index < 0)
+            return validFish[0];
+
+        return validFish[index % validFish.Count];
+    }
+
+    private static List<FishData> GetFallbackFishTemplates()
+    {
+        var result = new List<FishData>();
+        var fallbackPaths = new[]
+        {
+            "res://goldfish.tres",
+            "res://neonfish.tres",
+            "res://uniquefish.tres"
+        };
+
+        foreach (var path in fallbackPaths)
+        {
+            var data = GD.Load<FishData>(path);
+            if (data != null && data.FishScene != null)
+                result.Add(data);
+        }
+
+        return result;
+    }
+
+    private static int ExtractEntryIndex(string entryId)
+    {
+        if (string.IsNullOrWhiteSpace(entryId))
+            return -1;
+
+        var underscoreIndex = entryId.LastIndexOf('_');
+        if (underscoreIndex < 0 || underscoreIndex >= entryId.Length - 1)
+            return -1;
+
+        return int.TryParse(entryId.Substring(underscoreIndex + 1), out var index) ? index : -1;
     }
 
     private static string ToStorageCategory(ShopCategory category)
