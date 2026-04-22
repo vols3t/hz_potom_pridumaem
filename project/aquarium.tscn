@@ -17,6 +17,8 @@
 [ext_resource type="Script" uid="uid://cimi5pp6hj2p0" path="res://CoinDisplay.cs" id="15_4lbga"]
 [ext_resource type="Texture2D" uid="uid://bxknin0vampj5" path="res://assets/coins/coins.png" id="16_t0uma"]
 [ext_resource type="Texture2D" uid="uid://hw7ukhffro40" path="res://assets/fish-counts.png" id="17_vqk9c"]
+[ext_resource type="Script" uid="uid://mkmcpbm1flj2" path="res://FoodDropper.cs" id="18_huqxr"]
+[ext_resource type="PackedScene" uid="uid://b2lxntg248lln" path="res://assets/mutations/food_particle.tscn" id="19_yn4mw"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_vgbo8"]
 size = Vector2(1353, 10)
@@ -91,7 +93,7 @@ InitialFishData = ExtResource("5_8yxfx")
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=865599142]
 
-[node name="HUD" type="Control" parent="UI" unique_id=1692696274 node_paths=PackedStringArray("MoneyLabel", "IncomeLabel", "FishCountLabel", "ShopBtn", "CurrentFishBtn", "BestiaryBtn", "ShopPanel")]
+[node name="HUD" type="Control" parent="UI" unique_id=1692696274 node_paths=PackedStringArray("MoneyLabel", "IncomeLabel", "FishCountLabel", "ShopBtn", "CurrentFishBtn", "BestiaryBtn", "ShopPanel", "FeedBtn")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -106,6 +108,7 @@ ShopBtn = NodePath("RightPanel/MarginContainer/VBoxContainer/ShopButton")
 CurrentFishBtn = NodePath("RightPanel/MarginContainer/VBoxContainer/MyFishButton")
 BestiaryBtn = NodePath("RightPanel/MarginContainer/VBoxContainer/BestiaryButton")
 ShopPanel = NodePath("ShopPanel")
+FeedBtn = NodePath("RightPanel/MarginContainer/VBoxContainer/FoodButton")
 
 [node name="TopPanel" type="PanelContainer" parent="UI/HUD" unique_id=2111700529]
 layout_mode = 1
@@ -352,3 +355,11 @@ size_flags_vertical = 3
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+
+[node name="FoodDropper" type="Node" parent="." unique_id=1323159539]
+script = ExtResource("18_huqxr")
+FoodParticleScene = ExtResource("19_yn4mw")
+AquariumLeft = 42.0
+AquariumRight = 1395.0
+AquariumTop = 95.0
+AquariumBottom = 640.0

@@ -27,8 +27,16 @@ public partial class Node2d : CharacterBody2D
     public float FoodEaten { get; private set; } = 0f;
     public float TimeSinceLastFed { get; private set; } = 0f;
     public FishData ParentA { get; private set; }
+
     public FishData ParentB { get; private set; }
-    
+
+
+    [ExportCategory("Hunger")] [Export] public float HungerThreshold = 10f;
+
+    [Export] public float FoodDetectionRange = 400f; // Радиус поиска еды
+
+    private FoodParticle _targetFood = null;
+    private bool _isSeekingFood = false;
     public event Action<Node2d> StageChanged;
 
     private Node2D _visualRoot;
@@ -95,6 +103,7 @@ public partial class Node2d : CharacterBody2D
         var d = (float)delta;
         AdvanceGrowth(d);
         ProcessHunger(d);
+        SeekFood();
     }
 
     public override void _PhysicsProcess(double delta)
@@ -113,10 +122,15 @@ public partial class Node2d : CharacterBody2D
 
             return;
         }
+        
+        var movingToFood = MoveTowardsFood();
 
-        _directionTimer -= d;
-        if (_directionTimer <= 0)
-            PickRandomDirection();
+        if (!movingToFood)
+        {
+            _directionTimer -= d;
+            if (_directionTimer <= 0)
+                PickRandomDirection();
+        }
 
         Velocity = _direction * Speed;
         MoveAndSlide();
@@ -234,10 +248,10 @@ public partial class Node2d : CharacterBody2D
     {
         if (mutation == null)
             return false;
-        
+
         if (mutation.RequiresAdult && !IsAdult)
             return false;
-        
+
         foreach (var m in _mutations)
             if (m.MutationName == mutation.MutationName)
                 return false;
@@ -259,7 +273,7 @@ public partial class Node2d : CharacterBody2D
     {
         Speed = _baseSpeed;
         IsPredator = false;
-        CollisionMask = 1; 
+        CollisionMask = 1;
 
         var baseColor = Data?.BaseColor ?? new Color(1, 1, 1, 1);
         var finalColor = baseColor;
@@ -281,9 +295,9 @@ public partial class Node2d : CharacterBody2D
             if (m.MakesPredator)
             {
                 IsPredator = true;
-                CollisionMask = 1 | 2; 
+                CollisionMask = 1 | 2;
             }
-            
+
             finalColor *= m.ColorTint;
 
             mutationScale *= m.ScaleModifier;
@@ -368,7 +382,7 @@ public partial class Node2d : CharacterBody2D
             return;
 
         var stageScale = Data.GetStageScale(CurrentStage);
-        
+
         var mutationScale = Vector2.One;
         foreach (var m in _mutations)
             mutationScale *= m.ScaleModifier;
@@ -447,7 +461,7 @@ public partial class Node2d : CharacterBody2D
 
         StartHit(0.35f);
     }
-    
+
 
     private void PlaySwimAnimation()
     {
@@ -488,5 +502,73 @@ public partial class Node2d : CharacterBody2D
             angle += Mathf.Pi;
 
         _visualRoot.Rotation = angle;
+    }
+
+    private void SeekFood()
+    {
+        if (TimeSinceLastFed < HungerThreshold)
+        {
+            _isSeekingFood = false;
+            _targetFood = null;
+            return;
+        }
+
+        _isSeekingFood = true;
+
+        if (IsInstanceValid(_targetFood)
+            && GlobalPosition.DistanceTo(_targetFood.GlobalPosition) <= FoodDetectionRange)
+            return;
+
+        _targetFood = null;
+        var closestDist = FoodDetectionRange;
+
+        foreach (var node in GetTree().GetNodesInGroup("food"))
+        {
+            if (node is not FoodParticle food)
+                continue;
+
+            var dist = GlobalPosition.DistanceTo(food.GlobalPosition);
+            if (dist < closestDist)
+            {
+                closestDist = dist;
+                _targetFood = food;
+            }
+        }
+    }
+
+    private bool MoveTowardsFood()
+    {
+        if (!_isSeekingFood || !IsInstanceValid(_targetFood))
+        {
+            _isSeekingFood = false;
+            _targetFood = null;
+            return false;
+        }
+
+        var dirToFood = GlobalPosition.DirectionTo(_targetFood.GlobalPosition);
+        _direction = dirToFood;
+        ApplyVisualDirection(_direction);
+
+        if (GlobalPosition.DistanceTo(_targetFood.GlobalPosition) < 15f)
+        {
+            EatFood(_targetFood);
+            return false;
+        }
+
+        return true;
+    }
+
+    private void EatFood(FoodParticle food)
+    {
+        if (!IsInstanceValid(food))
+            return;
+
+        Feed(food.NutritionValue);
+        food.Consume();
+
+        _targetFood = null;
+        _isSeekingFood = false;
+
+        GD.Print($"[Feed] {FishName} ate food! Total: {FoodEaten:F0}, hunger reset");
     }
 }

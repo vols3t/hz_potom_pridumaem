@@ -1,0 +1,6 @@
+[gd_resource type="Resource" script_class="FoodData" format=3 uid="uid://cfrhm52ck0n28"]
+
+[ext_resource type="Script" uid="uid://ddec14vk7oag0" path="res://FoodData.cs" id="1_dfbyw"]
+
+[resource]
+script = ExtResource("1_dfbyw")

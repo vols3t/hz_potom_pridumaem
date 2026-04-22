@@ -16,12 +16,14 @@ public partial class Hud : Control
     [Export] public BaseButton CurrentFishBtn;
     [Export] public BaseButton BestiaryBtn;
     [Export] public PanelContainer ShopPanel;
+    [Export] public BaseButton FeedBtn;
 
     public override void _Ready()
     {
         if (ShopBtn != null) ShopBtn.Pressed += OnShopPressed;
         if (CurrentFishBtn != null) CurrentFishBtn.Pressed += OnCurrentFishPressed;
         if (BestiaryBtn != null) BestiaryBtn.Pressed += OnBestiaryPressed;
+        if (FeedBtn != null) FeedBtn.Pressed += OnFeedPressed;
     }
 
     public override void _Process(double delta)
@@ -29,7 +31,7 @@ public partial class Hud : Control
         var gm = GameManager.Instance;
         if (gm == null)
             return;
-
+        
         if (CoinsDisplay != null)
             CoinsDisplay.SetAmount(Mathf.RoundToInt(gm.Money));
         else if (MoneyLabel != null)
@@ -67,5 +69,17 @@ public partial class Hud : Control
     {
         if (ShopPanel != null)
             ShopPanel.Visible = !ShopPanel.Visible;
+    }
+
+    private void OnFeedPressed()
+    {
+        var defaultFood = GD.Load<FoodData>("res://assets/meal/basic_food.tres");
+        if (defaultFood == null)
+        {
+            GD.PrintErr("Food resource not found!");
+            return;
+        }
+
+        if (FoodDropper.Instance != null) FoodDropper.Instance.StartDropMode(defaultFood);
     }
 }
