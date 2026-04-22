@@ -54,6 +54,24 @@ public partial class Node2d : CharacterBody2D
     private float _cooldownTimer;
     private bool _isHit;
     private AnimationPlayer _anim;
+    public event Action<Node2d> Clicked;
+
+    public void EmitClicked()
+    {
+        Clicked?.Invoke(this);
+    }
+
+    public override void _InputEvent(Viewport viewport, InputEvent @event, int shapeIdx)
+    {
+        if (@event is InputEventMouseButton mouseBtn
+            && mouseBtn.ButtonIndex == MouseButton.Left
+            && mouseBtn.Pressed)
+        {
+            GD.Print($"[Click] Fish clicked: {FishName}");
+            Clicked?.Invoke(this);
+        }
+    }
+
 
     public override void _EnterTree()
     {
@@ -75,7 +93,7 @@ public partial class Node2d : CharacterBody2D
         _tailSprite = GetNodeOrNull<Sprite2D>("VisualRoot/TailSprite");
         _eyesSprite = GetNodeOrNull<Sprite2D>("VisualRoot/EyesSprite");
         _mutationOverlay = GetNodeOrNull<Sprite2D>("VisualRoot/MutationOverlay");
-
+        InputPickable = true;
         if (_visualRoot != null)
             _visualBaseScale = _visualRoot.Scale;
 
@@ -122,7 +140,7 @@ public partial class Node2d : CharacterBody2D
 
             return;
         }
-        
+
         var movingToFood = MoveTowardsFood();
 
         if (!movingToFood)

@@ -88,6 +88,8 @@ public partial class GameManager : Node
         _fishList.Add(fish);
         fish.StageChanged += OnFishStageChanged;
         _nextBreedAtSec[fish] = 0f;
+
+        fish.Clicked += OnFishClicked;
     }
 
     public void UnregisterFish(Node2d fish)
@@ -96,6 +98,7 @@ public partial class GameManager : Node
             return;
 
         fish.StageChanged -= OnFishStageChanged;
+        fish.Clicked -= OnFishClicked;
 
         _fishList.Remove(fish);
         _nextBreedAtSec.Remove(fish);
@@ -517,5 +520,46 @@ public partial class GameManager : Node
 
         Money += amount;
         LastEventText = eventText;
+    }
+
+    private void OnFishClicked(Node2d fish)
+    {
+        var hud = GetTree().CurrentScene.GetNodeOrNull<Hud>("UI/HUD");
+
+        hud?.OnFishClicked(fish);
+    }
+
+    public override void _Input(InputEvent @event)
+    {
+        if (@event is InputEventMouseButton mouseBtn
+            && mouseBtn.ButtonIndex == MouseButton.Left
+            && mouseBtn.Pressed)
+        {
+            var mousePos = GetViewport().GetMousePosition();
+            var clickedFish = FindClosestFishAt(mousePos, 50f);
+
+            if (clickedFish != null) OnFishClicked(clickedFish);
+        }
+    }
+
+    private Node2d FindClosestFishAt(Vector2 pos, float maxDistance)
+    {
+        Node2d closest = null;
+        var closestDist = maxDistance;
+
+        foreach (var fish in _fishList)
+        {
+            if (fish == null)
+                continue;
+
+            var dist = fish.GlobalPosition.DistanceTo(pos);
+            if (dist < closestDist)
+            {
+                closestDist = dist;
+                closest = fish;
+            }
+        }
+
+        return closest;
     }
 }

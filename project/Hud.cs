@@ -17,6 +17,7 @@ public partial class Hud : Control
     [Export] public BaseButton BestiaryBtn;
     [Export] public PanelContainer ShopPanel;
     [Export] public BaseButton FeedBtn;
+    [Export] public FishInfoPanel FishInfoPanel;
 
     public override void _Ready()
     {
@@ -31,7 +32,7 @@ public partial class Hud : Control
         var gm = GameManager.Instance;
         if (gm == null)
             return;
-        
+
         if (CoinsDisplay != null)
             CoinsDisplay.SetAmount(Mathf.RoundToInt(gm.Money));
         else if (MoneyLabel != null)
@@ -53,6 +54,37 @@ public partial class Hud : Control
 
         if (UniqueCountLabel != null)
             UniqueCountLabel.Text = $"Unique: {gm.GetFishCountByRarity(FishRarity.Unique)}";
+    }
+
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (@event is InputEventMouseButton mouseBtn
+            && mouseBtn.ButtonIndex == MouseButton.Left
+            && mouseBtn.Pressed)
+        {
+            if (FishInfoPanel != null && FishInfoPanel.Visible)
+            {
+                GetTree().CreateTimer(0.05f).Timeout += () =>
+                {
+                    if (FishInfoPanel.GetSelectedFish() == _lastClickedFish)
+                        return;
+
+                    FishInfoPanel.Close();
+                };
+            }
+        }
+    }
+    
+
+    private Node2d _lastClickedFish;
+
+    public void OnFishClicked(Node2d fish)
+    {
+        if (FishInfoPanel != null)
+        {
+            FishInfoPanel.ShowForFish(fish);
+
+        }
     }
 
     private void OnCurrentFishPressed()
