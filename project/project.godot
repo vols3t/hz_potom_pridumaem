@@ -22,6 +22,8 @@ GameManager="*uid://cflfd1xgi8hme"
 
 window/size/viewport_width=1438
 window/size/viewport_height=868
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
 
 [dotnet]
 

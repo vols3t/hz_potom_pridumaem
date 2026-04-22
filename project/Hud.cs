@@ -17,11 +17,17 @@ public partial class Hud : Control
     [Export] public BaseButton BestiaryBtn;
     [Export] public PanelContainer ShopPanel;
 
+    private global::ShopPanel _shopPanelScript;
+
     public override void _Ready()
     {
         if (ShopBtn != null) ShopBtn.Pressed += OnShopPressed;
         if (CurrentFishBtn != null) CurrentFishBtn.Pressed += OnCurrentFishPressed;
         if (BestiaryBtn != null) BestiaryBtn.Pressed += OnBestiaryPressed;
+
+        _shopPanelScript = ShopPanel as global::ShopPanel;
+        if (_shopPanelScript != null)
+            _shopPanelScript.ShopClosed += OnShopClosed;
     }
 
     public override void _Process(double delta)
@@ -65,7 +71,32 @@ public partial class Hud : Control
 
     private void OnShopPressed()
     {
+        if (ShopPanel == null)
+            return;
+
+        if (ShopPanel.Visible)
+        {
+            CloseShop();
+            return;
+        }
+
+        ShopPanel.Visible = true;
+    }
+
+    private void OnShopClosed()
+    {
+        CloseShop();
+    }
+
+    private void CloseShop()
+    {
         if (ShopPanel != null)
-            ShopPanel.Visible = !ShopPanel.Visible;
+            ShopPanel.Visible = false;
+    }
+
+    public override void _ExitTree()
+    {
+        if (_shopPanelScript != null)
+            _shopPanelScript.ShopClosed -= OnShopClosed;
     }
 }

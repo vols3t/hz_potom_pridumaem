@@ -22,6 +22,7 @@ public partial class GameManager : Node
 
     private readonly List<Node2d> _fishList = new();
     private readonly Dictionary<Node2d, float> _nextBreedAtSec = new();
+    private readonly Dictionary<string, int> _ownedShopItems = new();
 
     private Node2D _aquarium;
     private FishData[] _catalog = System.Array.Empty<FishData>();
@@ -95,6 +96,19 @@ public partial class GameManager : Node
         return true;
     }
 
+    public bool TryBuyFishOffer(FishData data, int offerPrice, string offerName)
+    {
+        if (data == null || data.FishScene == null || offerPrice < 0)
+            return false;
+
+        if (!SpendMoney(offerPrice))
+            return false;
+
+        SpawnFish(data, true, GetRandomSpawnPosition());
+        LastEventText = $"Purchased {offerName} for {offerPrice} coins";
+        return true;
+    }
+
     public bool TryBuyShopItem(string itemName, int price, string category)
     {
         if (string.IsNullOrWhiteSpace(itemName))
@@ -103,8 +117,37 @@ public partial class GameManager : Node
         if (!SpendMoney(price))
             return false;
 
+        var key = MakeInventoryKey(category, itemName);
+        _ownedShopItems[key] = GetOwnedShopItemCount(category, itemName) + 1;
         LastEventText = $"Purchased {category}: {itemName} for {price} coins";
         return true;
+    }
+
+    public int GetOwnedShopItemCount(string category, string itemName)
+    {
+        var key = MakeInventoryKey(category, itemName);
+        return _ownedShopItems.TryGetValue(key, out var value) ? value : 0;
+    }
+
+    public int GetOwnedCategoryCount(string category)
+    {
+        if (string.IsNullOrWhiteSpace(category))
+            return 0;
+
+        var normalized = $"{category.Trim().ToLowerInvariant()}::";
+        var total = 0;
+        foreach (var pair in _ownedShopItems)
+        {
+            if (pair.Key.StartsWith(normalized))
+                total += pair.Value;
+        }
+
+        return total;
+    }
+
+    public bool CanAfford(float amount)
+    {
+        return amount <= Money;
     }
 
     public int GetFishCountByRarity(FishRarity rarity)
@@ -310,5 +353,12 @@ public partial class GameManager : Node
 
         Money += amount;
         LastEventText = eventText;
+    }
+
+    private static string MakeInventoryKey(string category, string itemName)
+    {
+        var normalizedCategory = string.IsNullOrWhiteSpace(category) ? "misc" : category.Trim().ToLowerInvariant();
+        var normalizedItem = string.IsNullOrWhiteSpace(itemName) ? "item" : itemName.Trim().ToLowerInvariant();
+        return $"{normalizedCategory}::{normalizedItem}";
     }
 }

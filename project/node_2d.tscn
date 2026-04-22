@@ -54,11 +54,11 @@ script = ExtResource("1_epypp")
 SpriteFacesRight = false
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1818009791]
-scale = Vector2(0.49, 0.49)
+scale = Vector2(0.58, 0.58)
 texture = ExtResource("1_0e48y")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=85779994]
-scale = Vector2(0.49, 0.49)
+scale = Vector2(0.58, 0.58)
 shape = SubResource("RectangleShape2D_wtcfe")
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1158777158]
