@@ -1,5 +1,6 @@
 ﻿using Godot;
 using System;
+using System.Collections.Generic;
 
 public partial class Node2d : CharacterBody2D
 {
@@ -20,15 +21,15 @@ public partial class Node2d : CharacterBody2D
     public float AgeSec { get; private set; } = 0f;
     public bool IsAdult => CurrentStage == FishGrowthStage.Adult;
 
+    private readonly List<FishMutation> _mutations = new();
+    public IReadOnlyList<FishMutation> Mutations => _mutations;
+    public bool IsPredator { get; private set; } = false;
+    public float FoodEaten { get; private set; } = 0f;
+    public float TimeSinceLastFed { get; private set; } = 0f;
+    public FishData ParentA { get; private set; }
+    public FishData ParentB { get; private set; }
+    
     public event Action<Node2d> StageChanged;
-
-    private Vector2 _direction;
-    private float _directionTimer;
-    private float _hitTimer;
-    private float _cooldownTimer;
-    private bool _isHit;
-
-    private AnimationPlayer _anim;
 
     private Node2D _visualRoot;
     private Sprite2D _bodySprite;
@@ -37,7 +38,14 @@ public partial class Node2d : CharacterBody2D
     private Sprite2D _eyesSprite;
     private Sprite2D _mutationOverlay;
 
+    private float _baseSpeed;
     private Vector2 _visualBaseScale = Vector2.One;
+    private Vector2 _direction;
+    private float _directionTimer;
+    private float _hitTimer;
+    private float _cooldownTimer;
+    private bool _isHit;
+    private AnimationPlayer _anim;
 
     public override void _EnterTree()
     {
@@ -66,6 +74,8 @@ public partial class Node2d : CharacterBody2D
         if (_mutationOverlay != null)
             _mutationOverlay.Visible = false;
 
+        _baseSpeed = Speed;
+
         CollisionLayer = 2;
         CollisionMask = 1;
 
@@ -82,7 +92,9 @@ public partial class Node2d : CharacterBody2D
 
     public override void _Process(double delta)
     {
-        AdvanceGrowth((float)delta);
+        var d = (float)delta;
+        AdvanceGrowth(d);
+        ProcessHunger(d);
     }
 
     public override void _PhysicsProcess(double delta)
@@ -112,6 +124,7 @@ public partial class Node2d : CharacterBody2D
         CheckCollisions();
     }
 
+
     public void SetupFromData(FishData data, bool startAsFry)
     {
         if (data == null)
@@ -131,6 +144,33 @@ public partial class Node2d : CharacterBody2D
 
         AgeSec = data.FryDurationSec + data.TeenDurationSec;
         SetStage(FishGrowthStage.Adult);
+    }
+
+    public void SetupAsHybrid(FishData momData, FishData dadData, bool startAsFry)
+    {
+        Data = momData;
+        FishName = $"{momData.FishName}-{dadData.FishName}";
+        Description = $"Hybrid of {momData.FishName} and {dadData.FishName}";
+
+        ParentA = momData;
+        ParentB = dadData;
+
+        ApplyHybridBodyParts(momData, dadData);
+
+        if (startAsFry)
+        {
+            ResetToInitialStage();
+            return;
+        }
+
+        AgeSec = momData.FryDurationSec + momData.TeenDurationSec;
+        SetStage(FishGrowthStage.Adult);
+    }
+
+    public void SetParents(FishData parentA, FishData parentB)
+    {
+        ParentA = parentA;
+        ParentB = parentB;
     }
 
     private void ApplyBodyParts(FishData data)
@@ -163,6 +203,141 @@ public partial class Node2d : CharacterBody2D
             _visualRoot.Modulate = data.BaseColor;
     }
 
+    private void ApplyHybridBodyParts(FishData mom, FishData dad)
+    {
+        if (_bodySprite != null)
+            _bodySprite.Texture = mom.BodyTexture ?? dad.BodyTexture;
+
+        if (_eyesSprite != null)
+        {
+            _eyesSprite.Texture = mom.EyesTexture ?? dad.EyesTexture;
+            _eyesSprite.Visible = _eyesSprite.Texture != null;
+        }
+
+        if (_finsSprite != null)
+        {
+            _finsSprite.Texture = dad.FinsTexture ?? mom.FinsTexture;
+            _finsSprite.Visible = _finsSprite.Texture != null;
+        }
+
+        if (_tailSprite != null)
+        {
+            _tailSprite.Texture = dad.TailTexture ?? mom.TailTexture;
+            _tailSprite.Visible = _tailSprite.Texture != null;
+        }
+
+        if (_visualRoot != null)
+            _visualRoot.Modulate = mom.BaseColor.Lerp(dad.BaseColor, 0.5f);
+    }
+
+    public bool AddMutation(FishMutation mutation)
+    {
+        if (mutation == null)
+            return false;
+        
+        if (mutation.RequiresAdult && !IsAdult)
+            return false;
+        
+        foreach (var m in _mutations)
+            if (m.MutationName == mutation.MutationName)
+                return false;
+
+        _mutations.Add(mutation);
+        ApplyAllMutationEffects();
+
+        GD.Print($"[Mutation] {FishName} got mutation: {mutation.MutationName}");
+        return true;
+    }
+
+    public void RemoveMutation(FishMutation mutation)
+    {
+        if (_mutations.Remove(mutation))
+            ApplyAllMutationEffects();
+    }
+
+    private void ApplyAllMutationEffects()
+    {
+        Speed = _baseSpeed;
+        IsPredator = false;
+        CollisionMask = 1; 
+
+        var baseColor = Data?.BaseColor ?? new Color(1, 1, 1, 1);
+        var finalColor = baseColor;
+        var mutationScale = Vector2.One;
+
+        if (_mutationOverlay != null)
+        {
+            _mutationOverlay.Visible = false;
+            _mutationOverlay.Texture = null;
+        }
+
+        if (Data != null && _bodySprite != null && Data.BodyTexture != null)
+            _bodySprite.Texture = Data.BodyTexture;
+
+        foreach (var m in _mutations)
+        {
+            Speed *= m.SpeedMultiplier;
+
+            if (m.MakesPredator)
+            {
+                IsPredator = true;
+                CollisionMask = 1 | 2; 
+            }
+            
+            finalColor *= m.ColorTint;
+
+            mutationScale *= m.ScaleModifier;
+
+            if (m.OverlayTexture != null && _mutationOverlay != null)
+            {
+                _mutationOverlay.Texture = m.OverlayTexture;
+                _mutationOverlay.Visible = true;
+            }
+
+            if (m.BodyOverride != null && _bodySprite != null) _bodySprite.Texture = m.BodyOverride;
+        }
+
+        if (_visualRoot != null)
+        {
+            _visualRoot.Modulate = finalColor;
+
+            var stageScale = Data?.GetStageScale(CurrentStage) ?? Vector2.One;
+            _visualRoot.Scale = _visualBaseScale * stageScale * mutationScale;
+        }
+    }
+
+    public float GetIncomeMultiplier()
+    {
+        var multiplier = 1.0f;
+        foreach (var m in _mutations)
+            multiplier *= m.IncomeMultiplier;
+
+        return multiplier;
+    }
+
+    public void Feed(float amount)
+    {
+        FoodEaten += amount;
+        TimeSinceLastFed = 0f;
+    }
+
+    private void ProcessHunger(float delta)
+    {
+        TimeSinceLastFed += delta;
+    }
+
+    private void EatFish(Node2d prey)
+    {
+        GD.Print($"[Predator] {FishName} ate {prey.FishName}!");
+
+        FoodEaten += 5f;
+        TimeSinceLastFed = 0f;
+        _cooldownTimer = CollisionCooldown;
+
+        prey.QueueFree();
+    }
+
+
     private void AdvanceGrowth(float delta)
     {
         if (Data == null)
@@ -192,7 +367,20 @@ public partial class Node2d : CharacterBody2D
         if (_visualRoot == null || Data == null)
             return;
 
-        _visualRoot.Scale = _visualBaseScale * Data.GetStageScale(CurrentStage);
+        var stageScale = Data.GetStageScale(CurrentStage);
+        
+        var mutationScale = Vector2.One;
+        foreach (var m in _mutations)
+            mutationScale *= m.ScaleModifier;
+
+        _visualRoot.Scale = _visualBaseScale * stageScale * mutationScale;
+    }
+
+    private void ResetToInitialStage()
+    {
+        AgeSec = 0f;
+        CurrentStage = FishGrowthStage.Fry;
+        UpdateStageScale();
     }
 
     private void PickRandomDirection()
@@ -222,28 +410,21 @@ public partial class Node2d : CharacterBody2D
                 break;
             }
 
-            if (collider is Node2d)
+            if (collider is Node2d otherFish)
+            {
+                if (IsPredator && !otherFish.IsPredator)
+                {
+                    EatFish(otherFish);
+                    break;
+                }
+
                 continue;
+            }
         }
-    }
-
-    private void EndHit()
-    {
-        _isHit = false;
-        PlaySwimAnimation();
-        PickRandomDirection();
-    }
-
-    private void ResetToInitialStage()
-    {
-        AgeSec = 0f;
-        CurrentStage = FishGrowthStage.Fry;
-        UpdateStageScale();
     }
 
     private void ReactToWallCollision(Vector2 wallNormal)
     {
-        // 75%: сразу меняем направление. 25%: короткий hit, потом случайный разворот.
         if (GD.Randf() < 0.75f)
         {
             var reflected = _direction.Bounce(wallNormal).Normalized();
@@ -266,6 +447,7 @@ public partial class Node2d : CharacterBody2D
 
         StartHit(0.35f);
     }
+    
 
     private void PlaySwimAnimation()
     {
@@ -287,6 +469,13 @@ public partial class Node2d : CharacterBody2D
 
         if (_anim != null && _anim.HasAnimation("hit"))
             _anim.Play("hit");
+    }
+
+    private void EndHit()
+    {
+        _isHit = false;
+        PlaySwimAnimation();
+        PickRandomDirection();
     }
 
     private void ApplyVisualDirection(Vector2 dir)
