@@ -13,6 +13,7 @@ public partial class Node2d : CharacterBody2D
     [Export] public float DirectionChangeTime = 2.5f;
     [Export] public float HitAnimationTime = 3f;
     [Export] public float CollisionCooldown = 1.5f;
+    [Export] public bool SpriteFacesRight = false;
 
     public FishData Data { get; private set; }
     public FishGrowthStage CurrentStage { get; private set; } = FishGrowthStage.Fry;
@@ -27,6 +28,7 @@ public partial class Node2d : CharacterBody2D
     private float _cooldownTimer;
     private bool _isHit;
     private AnimationPlayer _anim;
+    private Sprite2D _sprite;
 
     public override void _EnterTree()
     {
@@ -41,6 +43,7 @@ public partial class Node2d : CharacterBody2D
     public override void _Ready()
     {
         _anim = GetNodeOrNull<AnimationPlayer>("AnimationPlayer");
+        _sprite = GetNodeOrNull<Sprite2D>("Sprite2D");
 
         // Fish move through each other, but still collide with aquarium walls.
         CollisionLayer = 2;
@@ -125,6 +128,7 @@ public partial class Node2d : CharacterBody2D
             (float)GD.RandRange(-1.0, 1.0),
             (float)GD.RandRange(-1.0, 1.0)
         ).Normalized();
+        ApplyVisualDirection(_direction);
         _directionTimer = DirectionChangeTime;
     }
 
@@ -175,6 +179,8 @@ public partial class Node2d : CharacterBody2D
             _direction = reflected.Lerp(randomDir, 0.35f).Normalized();
             if (_direction == Vector2.Zero)
                 PickRandomDirection();
+            else
+                ApplyVisualDirection(_direction);
 
             _directionTimer = (float)GD.RandRange(0.15, DirectionChangeTime);
             _cooldownTimer = Mathf.Max(_cooldownTimer, 0.1f);
@@ -204,5 +210,17 @@ public partial class Node2d : CharacterBody2D
 
         if (_anim != null && _anim.HasAnimation("hit"))
             _anim.Play("hit");
+    }
+
+    private void ApplyVisualDirection(Vector2 dir)
+    {
+        if (_sprite == null || dir == Vector2.Zero)
+            return;
+
+        var angle = dir.Angle();
+        if (!SpriteFacesRight)
+            angle += Mathf.Pi;
+
+        _sprite.Rotation = angle;
     }
 }

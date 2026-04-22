@@ -1,40 +1,53 @@
-﻿using Godot;
+using Godot;
 using System;
 
-public partial class ShopItem : Button
+public partial class ShopItem : PanelContainer
 {
     [Export] public TextureRect IconRect;
     [Export] public Label NameLabel;
+    [Export] public Label DescriptionLabel;
     [Export] public Label PriceLabel;
+    [Export] public Label DetailsLabel;
+    [Export] public Button BuyButton;
 
-    private FishData _fishData;
-    private Action<FishData> _onBuyCallback;
+    private Action _onBuyCallback;
 
-    public void Setup(FishData data, Action<FishData> onBuyCallback)
+    public void Setup(
+        string itemName,
+        string description,
+        int price,
+        Texture2D icon,
+        string details,
+        string buyButtonText,
+        Action onBuyCallback)
     {
-        _fishData = data;
         _onBuyCallback = onBuyCallback;
 
-        if (IconRect != null && data.Icon != null)
-            IconRect.Texture = data.Icon;
+        if (IconRect != null)
+            IconRect.Texture = icon;
 
         if (NameLabel != null)
-            NameLabel.Text = $"{data.FishName} ({data.Rarity})";
+            NameLabel.Text = itemName;
+
+        if (DescriptionLabel != null)
+            DescriptionLabel.Text = description;
 
         if (PriceLabel != null)
-        {
-            var rarityMult = data.GetRarityMultiplier();
-            PriceLabel.Text =
-                $"Price: {data.Price} | Stage rewards: Teen {data.GetStageReward(FishGrowthStage.Teen)} / " +
-                $"Adult {data.GetStageReward(FishGrowthStage.Adult)} | Rarity x{rarityMult:F1}";
-        }
+            PriceLabel.Text = $"Price: {price}";
 
-        Pressed -= OnPressed;
-        Pressed += OnPressed;
+        if (DetailsLabel != null)
+            DetailsLabel.Text = details;
+
+        if (BuyButton != null)
+        {
+            BuyButton.Text = string.IsNullOrWhiteSpace(buyButtonText) ? "Buy" : buyButtonText;
+            BuyButton.Pressed -= OnPressed;
+            BuyButton.Pressed += OnPressed;
+        }
     }
 
     private void OnPressed()
     {
-        _onBuyCallback?.Invoke(_fishData);
+        _onBuyCallback?.Invoke();
     }
 }

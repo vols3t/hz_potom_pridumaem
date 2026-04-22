@@ -3,16 +3,18 @@
 public partial class Hud : Control
 {
     [Export] public Label MoneyLabel;
+    [Export] public CoinDisplay CoinsDisplay;
     [Export] public Label IncomeLabel;
     [Export] public Label FishCountLabel;
+    [Export] public CoinDisplay FishCountDisplay;
 
     [Export] public Label CommonCountLabel;
     [Export] public Label RareCountLabel;
     [Export] public Label UniqueCountLabel;
 
-    [Export] public Button ShopBtn;
-    [Export] public Button CurrentFishBtn;
-    [Export] public Button BestiaryBtn;
+    [Export] public BaseButton ShopBtn;
+    [Export] public BaseButton CurrentFishBtn;
+    [Export] public BaseButton BestiaryBtn;
     [Export] public PanelContainer ShopPanel;
 
     public override void _Ready()
@@ -28,13 +30,17 @@ public partial class Hud : Control
         if (gm == null)
             return;
 
-        if (MoneyLabel != null)
+        if (CoinsDisplay != null)
+            CoinsDisplay.SetAmount(Mathf.RoundToInt(gm.Money));
+        else if (MoneyLabel != null)
             MoneyLabel.Text = $"Coins: {gm.Money:F0}";
 
         if (IncomeLabel != null)
             IncomeLabel.Text = gm.LastEventText;
 
-        if (FishCountLabel != null)
+        if (FishCountDisplay != null)
+            FishCountDisplay.SetAmount(gm.FishCount);
+        else if (FishCountLabel != null)
             FishCountLabel.Text = $"Fish: {gm.FishCount}";
 
         if (CommonCountLabel != null)

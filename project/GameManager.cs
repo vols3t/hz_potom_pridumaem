@@ -95,6 +95,18 @@ public partial class GameManager : Node
         return true;
     }
 
+    public bool TryBuyShopItem(string itemName, int price, string category)
+    {
+        if (string.IsNullOrWhiteSpace(itemName))
+            return false;
+
+        if (!SpendMoney(price))
+            return false;
+
+        LastEventText = $"Purchased {category}: {itemName} for {price} coins";
+        return true;
+    }
+
     public int GetFishCountByRarity(FishRarity rarity)
     {
         var count = 0;

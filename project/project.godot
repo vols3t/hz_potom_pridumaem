@@ -13,11 +13,15 @@ config_version=5
 config/name="test"
 run/main_scene="res://aquarium.tscn"
 config/features=PackedStringArray("4.6", "C#", "GL Compatibility")
-config/icon="res://icon.svg"
 
 [autoload]
 
 GameManager="*uid://cflfd1xgi8hme"
+
+[display]
+
+window/size/viewport_width=1438
+window/size/viewport_height=868
 
 [dotnet]
 
