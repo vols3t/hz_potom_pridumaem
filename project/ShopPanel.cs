@@ -371,7 +371,7 @@ public partial class ShopPanel : PanelContainer
 
         var coinsTitle = new Label
         {
-            Text = "Coins:",
+            Text = "Монеты:",
             VerticalAlignment = VerticalAlignment.Center
         };
         coinsTitle.AddThemeColorOverride("font_color", new Color("f5f0da"));
@@ -650,6 +650,16 @@ public partial class ShopPanel : PanelContainer
         EmitSignal(SignalName.ShopClosed);
     }
 
+    public void OpenShop()
+    {
+        if (!IsInsideTree())
+            return;
+
+        Visible = true;
+        MoveToFront();
+        RefreshAll();
+    }
+
     private void RefreshAll()
     {
         if (!_uiBuilt)
@@ -820,10 +830,14 @@ public partial class ShopPanel : PanelContainer
         buyButton.AddThemeColorOverride("font_color", new Color("eaf4db"));
         buyButton.AddThemeFontSizeOverride("font_size", 17);
 
-        var canAfford = GameManager.Instance?.CanAfford(entry.Price) ?? false;
+        var gm = GameManager.Instance;
+        var canAfford = gm?.CanAfford(entry.Price) ?? false;
         var validFishOffer = entry.Category != ShopCategory.Fish || ResolveFishTemplate(entry) != null;
-        buyButton.Disabled = !canAfford || !validFishOffer;
-        if (!canAfford)
+        var hasFishSlots = entry.Category != ShopCategory.Fish || (gm != null && gm.FishCount < gm.MaxFishCount);
+        buyButton.Disabled = !canAfford || !validFishOffer || !hasFishSlots;
+        if (!hasFishSlots)
+            buyButton.Text = "лимит";
+        else if (!canAfford)
             buyButton.Text = "дорого";
 
         buyButton.Pressed += () => TryBuyEntry(entry);

@@ -21,7 +21,11 @@ public partial class CoinDisplay : Control
         DigitsContainer ??= GetNodeOrNull<HBoxContainer>("DigitsContainer");
 
         if (BackgroundTexture == null)
-            BackgroundTexture = GD.Load<Texture2D>("res://assets/coins/coins.png");
+        {
+            // Keep the texture already set in scene (for example fish-counts panel),
+            // otherwise fallback to coins background.
+            BackgroundTexture = BackgroundRect?.Texture ?? GD.Load<Texture2D>("res://assets/coins/coins.png");
+        }
 
         if (BackgroundRect != null && BackgroundTexture != null)
             BackgroundRect.Texture = BackgroundTexture;

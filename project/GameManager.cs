@@ -9,7 +9,7 @@ public partial class GameManager : Node
     public int FishCount => _fishList.Count;
     public string LastEventText { get; private set; } = "";
 
-    [Export] public int MaxFishCount = 60;
+    [Export] public int MaxFishCount = 15;
     [Export] public int CommonBirthCoins = 12;
     [Export] public int RareBirthCoins = 28;
     [Export] public int UniqueBirthCoins = 55;
@@ -87,11 +87,23 @@ public partial class GameManager : Node
     {
         if (data == null || data.FishScene == null)
             return false;
+        if (FishCount >= MaxFishCount)
+        {
+            LastEventText = $"Fish limit reached ({MaxFishCount})";
+            return false;
+        }
 
         if (!SpendMoney(data.Price))
             return false;
 
-        SpawnFish(data, true, GetRandomSpawnPosition());
+        var spawned = SpawnFish(data, true, GetRandomSpawnPosition());
+        if (spawned == null)
+        {
+            Money += data.Price;
+            LastEventText = "Unable to spawn fish right now";
+            return false;
+        }
+
         LastEventText = $"Purchased {data.FishName} for {data.Price} coins";
         return true;
     }
@@ -100,11 +112,23 @@ public partial class GameManager : Node
     {
         if (data == null || data.FishScene == null || offerPrice < 0)
             return false;
+        if (FishCount >= MaxFishCount)
+        {
+            LastEventText = $"Fish limit reached ({MaxFishCount})";
+            return false;
+        }
 
         if (!SpendMoney(offerPrice))
             return false;
 
-        SpawnFish(data, true, GetRandomSpawnPosition());
+        var spawned = SpawnFish(data, true, GetRandomSpawnPosition());
+        if (spawned == null)
+        {
+            Money += offerPrice;
+            LastEventText = "Unable to spawn fish right now";
+            return false;
+        }
+
         LastEventText = $"Purchased {offerName} for {offerPrice} coins";
         return true;
     }

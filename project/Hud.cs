@@ -71,16 +71,17 @@ public partial class Hud : Control
 
     private void OnShopPressed()
     {
-        if (ShopPanel == null)
-            return;
-
-        if (ShopPanel.Visible)
+        if (_shopPanelScript != null)
         {
-            CloseShop();
+            if (_shopPanelScript.Visible)
+                _shopPanelScript.CloseShop();
+            else
+                _shopPanelScript.OpenShop();
             return;
         }
 
-        ShopPanel.Visible = true;
+        if (ShopPanel != null)
+            ShopPanel.Visible = !ShopPanel.Visible;
     }
 
     private void OnShopClosed()
