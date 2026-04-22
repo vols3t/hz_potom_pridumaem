@@ -19,6 +19,8 @@ public partial class FishData : Resource
 
     [ExportCategory("Breeding")]
     [Export] public float BreedWeight = 1.0f;
+    [Export] public string SpeciesId = "";
+    [Export] public string[] CompatibleSpeciesIds = System.Array.Empty<string>();
 
     [ExportCategory("Body Parts")]
     [Export] public Texture2D BodyTexture;

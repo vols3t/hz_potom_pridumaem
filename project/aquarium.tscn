@@ -4,7 +4,8 @@
 [ext_resource type="Script" uid="uid://brpiaigkw02tp" path="res://Hud.cs" id="3_ojo41"]
 [ext_resource type="Script" uid="uid://2u6f6w33m2yr" path="res://ShopPanel.cs" id="4_5kyaj"]
 [ext_resource type="PackedScene" uid="uid://c74odbuwg5u0n" path="res://shop_item.tscn" id="5_6hkmb"]
-[ext_resource type="Resource" path="res://goldfish.tres" id="6_3tg85"]
+[ext_resource type="Resource" uid="uid://5cpvr4706vct" path="res://angelfish.tres" id="5_8yxfx"]
+[ext_resource type="Resource" uid="uid://ttt0wxmgo1kj" path="res://goldfish.tres" id="6_3tg85"]
 [ext_resource type="Resource" path="res://neonfish.tres" id="7_1r8n5"]
 [ext_resource type="Texture2D" uid="uid://8d1qu1iw52ox" path="res://assets/fishes/medium/clown-fish-medium.png" id="8_4xpxf"]
 [ext_resource type="Texture2D" uid="uid://b2lxdki86em3g" path="res://assets/aquarium.png" id="9_u4mj4"]
@@ -82,7 +83,11 @@ InitialFishData = ExtResource("6_3tg85")
 
 [node name="fish2" parent="." unique_id=273007973 instance=ExtResource("1_qnukr")]
 position = Vector2(900, 420)
-InitialFishData = ExtResource("7_1r8n5")
+InitialFishData = ExtResource("5_8yxfx")
+
+[node name="fish3" parent="." unique_id=1327035935 instance=ExtResource("1_qnukr")]
+position = Vector2(900, 539)
+InitialFishData = ExtResource("5_8yxfx")
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=865599142]
 

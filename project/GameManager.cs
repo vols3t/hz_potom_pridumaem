@@ -15,9 +15,9 @@ public partial class GameManager : Node
     [Export] public int UniqueBirthCoins = 55;
 
     [ExportCategory("Breeding")] [Export] public float BreedChanceOnContact = 0.45f;
-    [Export] public float ParentBreedCooldownSec = 12f;
+    [Export] public float ParentBreedCooldownSec = 25f;
     [Export] public float MeetingCheckIntervalSec = 0.5f;
-    [Export] public float MeetingDistance = 85f;
+    [Export] public float MeetingDistance = 100f;
     [Export] public float HybridChance = 0.3f;
 
     [ExportCategory("Mutations")] [Export] public float MutationCheckInterval = 2.0f;
@@ -45,10 +45,9 @@ public partial class GameManager : Node
         QueueFree();
     }
 
-    public override void _Ready()
-    {
+    public override void _Ready() =>
         LoadMutations();
-    }
+
 
     public override void _Process(double delta)
     {
@@ -316,6 +315,9 @@ public partial class GameManager : Node
         if (!CanBreed(parentA) || !CanBreed(parentB))
             return false;
 
+        if (!AreCompatible(parentA.Data, parentB.Data))
+            return false;
+
         if (GD.Randf() > BreedChanceOnContact)
             return false;
 
@@ -326,7 +328,11 @@ public partial class GameManager : Node
 
         Node2d spawned;
 
-        if (parentA.Data != parentB.Data && GD.Randf() < HybridChance)
+        var differentSpecies = !string.IsNullOrEmpty(parentA.Data.SpeciesId)
+                               && !string.IsNullOrEmpty(parentB.Data.SpeciesId)
+                               && parentA.Data.SpeciesId != parentB.Data.SpeciesId;
+
+        if (differentSpecies && GD.Randf() < HybridChance)
             spawned = SpawnHybridFish(parentA.Data, parentB.Data, spawnPos);
         else
         {
@@ -358,6 +364,43 @@ public partial class GameManager : Node
 
         var nextTime = _nextBreedAtSec.TryGetValue(fish, out var v) ? v : 0f;
         return _elapsedSec >= nextTime;
+    }
+
+    private bool AreCompatible(FishData a, FishData b)
+    {
+        var aId = NormalizeSpeciesId(a.SpeciesId);
+        var bId = NormalizeSpeciesId(b.SpeciesId);
+
+
+        if (!string.IsNullOrEmpty(aId) && aId == bId) return true;
+
+        if (a.CompatibleSpeciesIds != null)
+        {
+            foreach (var id in a.CompatibleSpeciesIds)
+            {
+                var normalized = NormalizeSpeciesId(id);
+                if (normalized == bId) return true;
+            }
+        }
+
+        if (b.CompatibleSpeciesIds != null)
+        {
+            foreach (var id in b.CompatibleSpeciesIds)
+            {
+                var normalized = NormalizeSpeciesId(id);
+                if (normalized == aId) return true;
+            }
+        }
+
+        return false;
+    }
+
+    private string NormalizeSpeciesId(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "";
+
+        return value.Trim().ToLowerInvariant();
     }
 
     private FishData RollOffspring(FishData parentA, FishData parentB)
