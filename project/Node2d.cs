@@ -83,10 +83,10 @@ public partial class Node2d : CharacterBody2D
         CheckCollisions();
     }
 
-    public void SetupFromData(FishData data, bool startAsFry)
+    public void SetupFromData(FishData data, bool startAsFry, string customFishName = null)
     {
         Data = data;
-        FishName = data.FishName;
+        FishName = string.IsNullOrWhiteSpace(customFishName) ? ToRussianFishName(data.FishName) : customFishName;
         Description = data.Description;
 
         if (startAsFry)
@@ -97,6 +97,31 @@ public partial class Node2d : CharacterBody2D
 
         AgeSec = data.FryDurationSec + data.TeenDurationSec;
         SetStage(FishGrowthStage.Adult);
+    }
+
+    public static string ToRussianFishName(string fishName)
+    {
+        if (string.IsNullOrWhiteSpace(fishName))
+            return "Рыбка";
+
+        return fishName.Trim().ToLowerInvariant() switch
+        {
+            "goldfish" => "Золотая рыбка",
+            "neon" => "Неон",
+            "neon tetra" => "Неон",
+            "clownfish" => "Клоун",
+            "guppy" => "Гуппи",
+            "angelfish" => "Скалярия",
+            "discus" => "Дискус",
+            "swordtail" => "Меченосец",
+            "tetra" => "Тетра",
+            "cardinal" => "Кардинал",
+            "barb" => "Барбус",
+            "molly" => "Моллинезия",
+            "betta" => "Петушок",
+            "phoenix koi" => "Феникс кои",
+            _ => fishName
+        };
     }
 
     private void AdvanceGrowth(float delta)

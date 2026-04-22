@@ -104,7 +104,7 @@ public partial class GameManager : Node
             return false;
         }
 
-        LastEventText = $"Purchased {data.FishName} for {data.Price} coins";
+        LastEventText = $"Purchased {spawned.FishName} for {data.Price} coins";
         return true;
     }
 
@@ -121,7 +121,7 @@ public partial class GameManager : Node
         if (!SpendMoney(offerPrice))
             return false;
 
-        var spawned = SpawnFish(data, true, GetRandomSpawnPosition());
+        var spawned = SpawnFish(data, true, GetRandomSpawnPosition(), offerName);
         if (spawned == null)
         {
             Money += offerPrice;
@@ -129,7 +129,8 @@ public partial class GameManager : Node
             return false;
         }
 
-        LastEventText = $"Purchased {offerName} for {offerPrice} coins";
+        var purchasedName = string.IsNullOrWhiteSpace(offerName) ? spawned.FishName : offerName;
+        LastEventText = $"Purchased {purchasedName} for {offerPrice} coins";
         return true;
     }
 
@@ -184,6 +185,18 @@ public partial class GameManager : Node
         }
 
         return count;
+    }
+
+    public IReadOnlyList<Node2d> GetFishSnapshot()
+    {
+        var snapshot = new List<Node2d>(_fishList.Count);
+        foreach (var fish in _fishList)
+        {
+            if (fish != null && IsInstanceValid(fish))
+                snapshot.Add(fish);
+        }
+
+        return snapshot;
     }
 
     public bool SpendMoney(float amount)
@@ -257,7 +270,8 @@ public partial class GameManager : Node
             (float)GD.RandRange(-20.0, 20.0)
         ));
 
-        var spawned = SpawnFish(offspringData, true, spawnPos);
+        var offspringName = ResolveOffspringName(parentA, parentB, offspringData);
+        var spawned = SpawnFish(offspringData, true, spawnPos, offspringName);
         if (spawned == null)
             return false;
 
@@ -328,7 +342,7 @@ public partial class GameManager : Node
         return _catalog[_catalog.Length - 1];
     }
 
-    private Node2d SpawnFish(FishData data, bool startAsFry, Vector2 spawnPos)
+    private Node2d SpawnFish(FishData data, bool startAsFry, Vector2 spawnPos, string customFishName = null)
     {
         if (_aquarium == null || data == null || data.FishScene == null || FishCount >= MaxFishCount)
             return null;
@@ -337,11 +351,25 @@ public partial class GameManager : Node
         if (fishNode is not Node2d fishScript)
             return null;
 
-        fishScript.SetupFromData(data, startAsFry);
+        fishScript.SetupFromData(data, startAsFry, customFishName);
         fishNode.Position = ClampToSpawnArea(spawnPos);
 
         _aquarium.AddChild(fishNode);
         return fishScript;
+    }
+
+    private static string ResolveOffspringName(Node2d parentA, Node2d parentB, FishData offspringData)
+    {
+        if (offspringData == null)
+            return null;
+
+        if (parentA?.Data == offspringData && !string.IsNullOrWhiteSpace(parentA.FishName))
+            return parentA.FishName;
+
+        if (parentB?.Data == offspringData && !string.IsNullOrWhiteSpace(parentB.FishName))
+            return parentB.FishName;
+
+        return null;
     }
 
     private Vector2 GetRandomSpawnPosition()
