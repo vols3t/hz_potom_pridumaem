@@ -14,8 +14,7 @@ public partial class GameManager : Node
     [Export] public int RareBirthCoins = 28;
     [Export] public int UniqueBirthCoins = 55;
 
-    [ExportCategory("Breeding")]
-    [Export] public float BreedChanceOnContact = 0.45f;
+    [ExportCategory("Breeding")] [Export] public float BreedChanceOnContact = 0.45f;
     [Export] public float ParentBreedCooldownSec = 12f;
     [Export] public float MeetingCheckIntervalSec = 0.5f;
     [Export] public float MeetingDistance = 85f;
@@ -44,6 +43,7 @@ public partial class GameManager : Node
     public override void _Process(double delta)
     {
         _elapsedSec += (float)delta;
+        Money += GetIncomePerSecond() * (float)delta;
         _meetingTimerSec += (float)delta;
 
         if (_meetingTimerSec >= MeetingCheckIntervalSec)
@@ -111,10 +111,8 @@ public partial class GameManager : Node
     {
         var count = 0;
         foreach (var fish in _fishList)
-        {
             if (fish.Data != null && fish.Data.Rarity == rarity)
                 count++;
-        }
 
         return count;
     }
@@ -238,10 +236,8 @@ public partial class GameManager : Node
 
         var totalWeight = 0f;
         foreach (var fishData in _catalog)
-        {
             if (fishData != null)
                 totalWeight += Mathf.Max(0.01f, fishData.BreedWeight);
-        }
 
         if (totalWeight <= 0f)
             return _catalog[0];
@@ -284,13 +280,11 @@ public partial class GameManager : Node
         return new Vector2(x, y);
     }
 
-    private Vector2 ClampToSpawnArea(Vector2 pos)
-    {
-        return new Vector2(
+    private Vector2 ClampToSpawnArea(Vector2 pos) =>
+        new(
             Mathf.Clamp(pos.X, _spawnAreaMin.X, _spawnAreaMax.X),
             Mathf.Clamp(pos.Y, _spawnAreaMin.Y, _spawnAreaMax.Y)
         );
-    }
 
     private int GetBirthReward(FishRarity rarity)
     {
@@ -310,5 +304,33 @@ public partial class GameManager : Node
 
         Money += amount;
         LastEventText = eventText;
+    }
+
+    public float GetIncomePerSecond()
+    {
+        var total = 0f;
+        foreach (var fish in _fishList) total += GetFishIncome(fish);
+        return total;
+    }
+
+    private float GetFishIncome(Node2d fish)
+    {
+        if (fish?.Data == null)
+            return 0f;
+
+        var income = fish.Data.IncomePerSec;
+
+        income *= fish.Data.GetRarityMultiplier();
+
+
+        income *= fish.CurrentStage switch
+        {
+            FishGrowthStage.Fry => 0.25f,
+            FishGrowthStage.Teen => 0.6f,
+            FishGrowthStage.Adult => 1.0f,
+            _ => 1.0f
+        };
+
+        return income;
     }
 }

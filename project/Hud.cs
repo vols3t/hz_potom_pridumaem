@@ -36,7 +36,7 @@ public partial class Hud : Control
             MoneyLabel.Text = $"Coins: {gm.Money:F0}";
 
         if (IncomeLabel != null)
-            IncomeLabel.Text = gm.LastEventText;
+            IncomeLabel.Text = $"+{gm.GetIncomePerSecond():F1}/sec";
 
         if (FishCountDisplay != null)
             FishCountDisplay.SetAmount(gm.FishCount);

@@ -6,6 +6,7 @@ public partial class FishData : Resource
     [Export] public string FishName = "Fish";
     [Export(PropertyHint.MultilineText)] public string Description = "Fish description";
     [Export] public int Price = 100;
+    [Export] public float IncomePerSec = 1.0f;
     [Export] public FishRarity Rarity = FishRarity.Common;
 
     [ExportCategory("Growth")]
