@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://bgiqlv2kr3ftq"]
 
-[ext_resource type="Texture2D" path="res://assets/fishes/medium/clown-fish-medium.png" id="1_0e48y"]
+[ext_resource type="Texture2D" uid="uid://8d1qu1iw52ox" path="res://assets/fishes/medium/clown-fish-medium.png" id="1_0e48y"]
 [ext_resource type="Script" uid="uid://n5a1kwc37du2" path="res://Node2d.cs" id="1_epypp"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wtcfe"]
@@ -11,7 +11,7 @@ length = 0.001
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("Sprite2D:modulate")
+tracks/0/path = NodePath("VisualRoot/BodySprite:modulate")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
@@ -27,7 +27,7 @@ length = 3.0
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("Sprite2D:modulate")
+tracks/0/path = NodePath("VisualRoot/BodySprite:modulate")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
@@ -51,11 +51,22 @@ _data = {
 [node name="fish" type="CharacterBody2D" unique_id=574454736]
 position = Vector2(415, 266)
 script = ExtResource("1_epypp")
-SpriteFacesRight = false
 
-[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1818009791]
+[node name="VisualRoot" type="Node2D" parent="." unique_id=1862909678]
+
+[node name="BodySprite" type="Sprite2D" parent="VisualRoot" unique_id=1818009791]
 scale = Vector2(0.49, 0.49)
 texture = ExtResource("1_0e48y")
+
+[node name="FinsSprite" type="Sprite2D" parent="VisualRoot" unique_id=1427959914]
+
+[node name="TailSprite" type="Sprite2D" parent="VisualRoot" unique_id=1970028344]
+
+[node name="EyesSprite" type="Sprite2D" parent="VisualRoot" unique_id=311634720]
+
+[node name="MutationOverlay" type="Sprite2D" parent="VisualRoot" unique_id=119729912]
+visible = false
+z_index = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=85779994]
 scale = Vector2(0.49, 0.49)

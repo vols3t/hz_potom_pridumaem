@@ -3,13 +3,13 @@ using System;
 
 public partial class Node2d : CharacterBody2D
 {
-    [ExportCategory("Fish Info")]
-    [Export] public FishData InitialFishData;
+    [ExportCategory("Fish Info")] [Export] public FishData InitialFishData;
     [Export] public string FishName = "Fish";
     [Export(PropertyHint.MultilineText)] public string Description = "Just swimming";
 
-    [ExportCategory("Movement & Animation")]
-    [Export] public float Speed = 100f;
+    [ExportCategory("Movement & Animation")] [Export]
+    public float Speed = 100f;
+
     [Export] public float DirectionChangeTime = 2.5f;
     [Export] public float HitAnimationTime = 3f;
     [Export] public float CollisionCooldown = 1.5f;
@@ -27,8 +27,17 @@ public partial class Node2d : CharacterBody2D
     private float _hitTimer;
     private float _cooldownTimer;
     private bool _isHit;
+
     private AnimationPlayer _anim;
-    private Sprite2D _sprite;
+
+    private Node2D _visualRoot;
+    private Sprite2D _bodySprite;
+    private Sprite2D _finsSprite;
+    private Sprite2D _tailSprite;
+    private Sprite2D _eyesSprite;
+    private Sprite2D _mutationOverlay;
+
+    private Vector2 _visualBaseScale = Vector2.One;
 
     public override void _EnterTree()
     {
@@ -43,14 +52,29 @@ public partial class Node2d : CharacterBody2D
     public override void _Ready()
     {
         _anim = GetNodeOrNull<AnimationPlayer>("AnimationPlayer");
-        _sprite = GetNodeOrNull<Sprite2D>("Sprite2D");
 
-        // Fish move through each other, but still collide with aquarium walls.
+        _visualRoot = GetNodeOrNull<Node2D>("VisualRoot");
+        _bodySprite = GetNodeOrNull<Sprite2D>("VisualRoot/BodySprite");
+        _finsSprite = GetNodeOrNull<Sprite2D>("VisualRoot/FinsSprite");
+        _tailSprite = GetNodeOrNull<Sprite2D>("VisualRoot/TailSprite");
+        _eyesSprite = GetNodeOrNull<Sprite2D>("VisualRoot/EyesSprite");
+        _mutationOverlay = GetNodeOrNull<Sprite2D>("VisualRoot/MutationOverlay");
+
+        if (_visualRoot != null)
+            _visualBaseScale = _visualRoot.Scale;
+
+        if (_mutationOverlay != null)
+            _mutationOverlay.Visible = false;
+
         CollisionLayer = 2;
         CollisionMask = 1;
 
-        if (Data == null && InitialFishData != null)
-            SetupFromData(InitialFishData, true);
+        if (Data != null)
+        {
+            ApplyBodyParts(Data);
+            UpdateStageScale();
+        }
+        else if (InitialFishData != null) SetupFromData(InitialFishData, true);
 
         PlaySwimAnimation();
         PickRandomDirection();
@@ -66,28 +90,38 @@ public partial class Node2d : CharacterBody2D
         var d = (float)delta;
         Velocity = Vector2.Zero;
 
-        if (_cooldownTimer > 0) _cooldownTimer -= d;
+        if (_cooldownTimer > 0)
+            _cooldownTimer -= d;
 
         if (_isHit)
         {
             _hitTimer -= d;
-            if (_hitTimer <= 0) EndHit();
+            if (_hitTimer <= 0)
+                EndHit();
+
             return;
         }
 
         _directionTimer -= d;
-        if (_directionTimer <= 0) PickRandomDirection();
+        if (_directionTimer <= 0)
+            PickRandomDirection();
 
         Velocity = _direction * Speed;
         MoveAndSlide();
+
         CheckCollisions();
     }
 
     public void SetupFromData(FishData data, bool startAsFry)
     {
+        if (data == null)
+            return;
+
         Data = data;
         FishName = data.FishName;
         Description = data.Description;
+
+        ApplyBodyParts(data);
 
         if (startAsFry)
         {
@@ -97,6 +131,36 @@ public partial class Node2d : CharacterBody2D
 
         AgeSec = data.FryDurationSec + data.TeenDurationSec;
         SetStage(FishGrowthStage.Adult);
+    }
+
+    private void ApplyBodyParts(FishData data)
+    {
+        if (data == null)
+            return;
+
+        if (_bodySprite != null && data.BodyTexture != null)
+            _bodySprite.Texture = data.BodyTexture;
+
+        if (_finsSprite != null)
+        {
+            _finsSprite.Texture = data.FinsTexture;
+            _finsSprite.Visible = data.FinsTexture != null;
+        }
+
+        if (_tailSprite != null)
+        {
+            _tailSprite.Texture = data.TailTexture;
+            _tailSprite.Visible = data.TailTexture != null;
+        }
+
+        if (_eyesSprite != null)
+        {
+            _eyesSprite.Texture = data.EyesTexture;
+            _eyesSprite.Visible = data.EyesTexture != null;
+        }
+
+        if (_visualRoot != null)
+            _visualRoot.Modulate = data.BaseColor;
     }
 
     private void AdvanceGrowth(float delta)
@@ -119,7 +183,16 @@ public partial class Node2d : CharacterBody2D
             return;
 
         CurrentStage = newStage;
+        UpdateStageScale();
         StageChanged?.Invoke(this);
+    }
+
+    private void UpdateStageScale()
+    {
+        if (_visualRoot == null || Data == null)
+            return;
+
+        _visualRoot.Scale = _visualBaseScale * Data.GetStageScale(CurrentStage);
     }
 
     private void PickRandomDirection()
@@ -128,13 +201,15 @@ public partial class Node2d : CharacterBody2D
             (float)GD.RandRange(-1.0, 1.0),
             (float)GD.RandRange(-1.0, 1.0)
         ).Normalized();
+
         ApplyVisualDirection(_direction);
         _directionTimer = DirectionChangeTime;
     }
 
     private void CheckCollisions()
     {
-        if (_cooldownTimer > 0) return;
+        if (_cooldownTimer > 0)
+            return;
 
         for (var i = 0; i < GetSlideCollisionCount(); i++)
         {
@@ -163,11 +238,12 @@ public partial class Node2d : CharacterBody2D
     {
         AgeSec = 0f;
         CurrentStage = FishGrowthStage.Fry;
+        UpdateStageScale();
     }
 
     private void ReactToWallCollision(Vector2 wallNormal)
     {
-        // 75%: instantly redirect. 25%: short pause animation, then random move.
+        // 75%: сразу меняем направление. 25%: короткий hit, потом случайный разворот.
         if (GD.Randf() < 0.75f)
         {
             var reflected = _direction.Bounce(wallNormal).Normalized();
@@ -177,6 +253,7 @@ public partial class Node2d : CharacterBody2D
             ).Normalized();
 
             _direction = reflected.Lerp(randomDir, 0.35f).Normalized();
+
             if (_direction == Vector2.Zero)
                 PickRandomDirection();
             else
@@ -214,13 +291,13 @@ public partial class Node2d : CharacterBody2D
 
     private void ApplyVisualDirection(Vector2 dir)
     {
-        if (_sprite == null || dir == Vector2.Zero)
+        if (_visualRoot == null || dir == Vector2.Zero)
             return;
 
         var angle = dir.Angle();
         if (!SpriteFacesRight)
             angle += Mathf.Pi;
 
-        _sprite.Rotation = angle;
+        _visualRoot.Rotation = angle;
     }
 }

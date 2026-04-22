@@ -20,6 +20,18 @@ public partial class FishData : Resource
     [ExportCategory("Breeding")]
     [Export] public float BreedWeight = 1.0f;
 
+    [ExportCategory("Body Parts")]
+    [Export] public Texture2D BodyTexture;
+    [Export] public Texture2D FinsTexture;
+    [Export] public Texture2D TailTexture;
+    [Export] public Texture2D EyesTexture;
+    [Export] public Color BaseColor = new Color(1, 1, 1, 1);
+    
+    [ExportCategory("Stage Scales")]
+    [Export] public Vector2 FryScale = new Vector2(0.4f, 0.4f);
+    [Export] public Vector2 TeenScale = new Vector2(0.7f, 0.7f);
+    [Export] public Vector2 AdultScale = new Vector2(1.0f, 1.0f);
+
     [Export] public Texture2D Icon;
     [Export] public PackedScene FishScene;
 
@@ -42,7 +54,17 @@ public partial class FishData : Resource
             FishGrowthStage.Adult => AdultStageCoins,
             _ => 0
         };
-
         return Mathf.RoundToInt(baseReward * GetRarityMultiplier());
+    }
+
+    public Vector2 GetStageScale(FishGrowthStage stage)
+    {
+        return stage switch
+        {
+            FishGrowthStage.Fry => FryScale,
+            FishGrowthStage.Teen => TeenScale,
+            FishGrowthStage.Adult => AdultScale,
+            _ => AdultScale
+        };
     }
 }
