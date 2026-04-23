@@ -35,5 +35,6 @@ public enum MutationTrigger
     None,
     FoodEaten,
     Starving,
-    AgeReached
+    AgeReached,
+    Overfed      
 }

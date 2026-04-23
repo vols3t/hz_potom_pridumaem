@@ -1,4 +1,4 @@
-﻿using Godot;
+using Godot;
 using System.Collections.Generic;
 
 public partial class GameManager : Node
@@ -186,18 +186,13 @@ public partial class GameManager : Node
         var normalized = $"{category.Trim().ToLowerInvariant()}::";
         var total = 0;
         foreach (var pair in _ownedShopItems)
-        {
             if (pair.Key.StartsWith(normalized))
                 total += pair.Value;
-        }
 
         return total;
     }
 
-    public bool CanAfford(float amount)
-    {
-        return amount <= Money;
-    }
+    public bool CanAfford(float amount) => amount <= Money;
 
     public int GetFishCountByRarity(FishRarity rarity)
     {
@@ -213,10 +208,8 @@ public partial class GameManager : Node
     {
         var snapshot = new List<Node2d>(_fishList.Count);
         foreach (var fish in _fishList)
-        {
             if (fish != null && IsInstanceValid(fish))
                 snapshot.Add(fish);
-        }
 
         return snapshot;
     }
@@ -238,10 +231,7 @@ public partial class GameManager : Node
         _discoveredFishByName[normalizedName] = fishData;
     }
 
-    public bool HasDiscoveredFish(FishData fishData)
-    {
-        return fishData != null && _discoveredFish.Contains(fishData);
-    }
+    public bool HasDiscoveredFish(FishData fishData) => fishData != null && _discoveredFish.Contains(fishData);
 
     public bool HasDiscoveredFishName(string fishName)
     {
@@ -253,10 +243,8 @@ public partial class GameManager : Node
     {
         var result = new List<FishData>(_discoveredFish.Count);
         foreach (var fish in _discoveredFish)
-        {
             if (fish != null && fish.FishScene != null)
                 result.Add(fish);
-        }
 
         return result;
     }
@@ -265,10 +253,8 @@ public partial class GameManager : Node
     {
         var result = new Dictionary<string, FishData>(System.StringComparer.OrdinalIgnoreCase);
         foreach (var pair in _discoveredFishByName)
-        {
             if (pair.Value != null && pair.Value.FishScene != null)
                 result[pair.Key] = pair.Value;
-        }
 
         return result;
     }
@@ -406,6 +392,7 @@ public partial class GameManager : Node
                     MutationTrigger.FoodEaten => fish.FoodEaten >= mutation.TriggerThreshold,
                     MutationTrigger.Starving => fish.TimeSinceLastFed >= mutation.TriggerThreshold,
                     MutationTrigger.AgeReached => fish.AgeSec >= mutation.TriggerThreshold,
+                    MutationTrigger.Overfed => fish.OverfedAmount >= mutation.TriggerThreshold,
                     _ => false
                 };
 
@@ -480,6 +467,7 @@ public partial class GameManager : Node
             var offspringName = ResolveOffspringName(parentA, parentB, offspringData);
             spawned = SpawnFish(offspringData, true, spawnPos, offspringName);
         }
+
         if (spawned == null)
             return false;
 
@@ -677,10 +665,8 @@ public partial class GameManager : Node
         return $"{normalizedCategory}::{normalizedItem}";
     }
 
-    private static string NormalizeFishName(string fishName)
-    {
-        return string.IsNullOrWhiteSpace(fishName) ? string.Empty : fishName.Trim();
-    }
+    private static string NormalizeFishName(string fishName) =>
+        string.IsNullOrWhiteSpace(fishName) ? string.Empty : fishName.Trim();
 
     private void OnFishClicked(Node2d fish)
     {

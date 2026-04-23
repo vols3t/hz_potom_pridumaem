@@ -4,3 +4,5 @@
 
 [resource]
 script = ExtResource("1_dfbyw")
+NutritionValue = 2.0
+ParticleCount = 4

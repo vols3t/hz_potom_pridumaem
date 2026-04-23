@@ -10,7 +10,7 @@ public partial class FoodDropper : Node
     [Export] public float AquariumRight = 930f;
     [Export] public float AquariumTop = 160f;
     [Export] public float AquariumBottom = 530f;
-
+    [Export] public float FloorOffset = 15f;
     private FoodData _selectedFood;
     private bool _isDropMode = false;
     private Node2D _aquarium;
@@ -100,7 +100,7 @@ public partial class FoodDropper : Node
             );
 
             particle.Position = dropPosition + offset;
-            particle.Setup(_selectedFood, AquariumBottom);
+            particle.Setup(_selectedFood, AquariumBottom - FloorOffset);
 
             _aquarium.AddChild(particle);
         }

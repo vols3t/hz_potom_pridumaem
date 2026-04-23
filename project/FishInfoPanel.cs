@@ -51,7 +51,7 @@ public partial class FishInfoPanel : PanelContainer
 
         _selectedFish = fish;
         Visible = true;
-        
+
         if (NameEdit != null)
             NameEdit.Text = fish.FishName;
 
@@ -76,14 +76,17 @@ public partial class FishInfoPanel : PanelContainer
         if (SpeciesLabel != null)
         {
             var species = fish.Data != null ? fish.Data.FishName : "Unknown";
-            SpeciesLabel.Text = $"Species: {species}";
+            SpeciesLabel.Text = $"{Localization.T("Species")}: {species}";
         }
 
         if (StageLabel != null)
-            StageLabel.Text = $"Stage: {fish.CurrentStage}";
+        {
+            var stage = Localization.T(fish.CurrentStage.ToString());
+            StageLabel.Text = $"{Localization.T("Stage")}: {stage}";
+        }
 
         if (AgeLabel != null)
-            AgeLabel.Text = $"Age: {fish.AgeSec:F0}s";
+            AgeLabel.Text = $"{Localization.T("Age")}: {fish.AgeSec:F0}с";
 
         if (IncomeLabel != null)
         {
@@ -102,20 +105,31 @@ public partial class FishInfoPanel : PanelContainer
                          * fish.GetIncomeMultiplier();
             }
 
-            IncomeLabel.Text = $"Income: +{income:F1}/sec";
+            IncomeLabel.Text = $"{Localization.T("Income")}: +{income:F1}/сек";
         }
 
         if (HungerLabel != null)
         {
-            string hungerStatus;
-            if (fish.TimeSinceLastFed < 15f)
-                hungerStatus = "🟢 Сытая";
-            else if (fish.TimeSinceLastFed < 60f)
-                hungerStatus = "🟡 Проголодалась";
-            else
-                hungerStatus = "🔴 Очень голодная!";
+            string hungerKey;
+            string hungerEmoji;
 
-            HungerLabel.Text = $"Hunger: {hungerStatus} ({fish.TimeSinceLastFed:F0}s)";
+            if (fish.TimeSinceLastFed < 15f)
+            {
+                hungerKey = "Fed";
+                hungerEmoji = "🟢";
+            }
+            else if (fish.TimeSinceLastFed < 60f)
+            {
+                hungerKey = "Hungry";
+                hungerEmoji = "🟡";
+            }
+            else
+            {
+                hungerKey = "Starving";
+                hungerEmoji = "🔴";
+            }
+
+            HungerLabel.Text = $"{Localization.T("Hunger")}: {hungerEmoji} {Localization.T(hungerKey)}";
         }
 
         UpdateMutationsList();
@@ -125,14 +139,17 @@ public partial class FishInfoPanel : PanelContainer
     {
         if (MutationsList == null || _selectedFish == null)
             return;
-        
+
         foreach (var child in MutationsList.GetChildren())
             child.QueueFree();
+
+        if (MutationsTitle != null)
+            MutationsTitle.Text = $"{Localization.T("Mutations")}:";
 
         if (_selectedFish.Mutations.Count == 0)
         {
             var none = new Label();
-            none.Text = "  None";
+            none.Text = $"  {Localization.T("None")}";
             none.AddThemeColorOverride("font_color", new Color(0.6f, 0.6f, 0.6f));
             MutationsList.AddChild(none);
             return;
@@ -141,7 +158,7 @@ public partial class FishInfoPanel : PanelContainer
         foreach (var mutation in _selectedFish.Mutations)
         {
             var label = new Label();
-            label.Text = $"  • {mutation.MutationName}";
+            label.Text = $"  • {Localization.T(mutation.MutationName)}";
             MutationsList.AddChild(label);
         }
     }
@@ -151,15 +168,29 @@ public partial class FishInfoPanel : PanelContainer
         if (_selectedFish == null)
             return;
 
-        var screenPos = _selectedFish.GlobalPosition;
-        var offset = new Vector2(40, -80);
-        var targetPos = screenPos + offset;
-        
+        var fishPos = _selectedFish.GlobalPosition;
         var viewportSize = GetViewportRect().Size;
-        targetPos.X = Mathf.Clamp(targetPos.X, 0, viewportSize.X - Size.X);
-        targetPos.Y = Mathf.Clamp(targetPos.Y, 0, viewportSize.Y - Size.Y);
+        var panelSize = Size;
 
-        GlobalPosition = targetPos;
+        var offsetX = 40f;
+        var offsetY = -80f;
+
+        var targetX = fishPos.X + offsetX;
+        var targetY = fishPos.Y + offsetY;
+
+        if (targetX + panelSize.X > viewportSize.X)
+            targetX = fishPos.X - offsetX - panelSize.X;
+
+        if (targetX < 0)
+            targetX = 0;
+
+        if (targetY + panelSize.Y > viewportSize.Y)
+            targetY = fishPos.Y - offsetY - panelSize.Y;
+
+        if (targetY < 0)
+            targetY = 0;
+
+        GlobalPosition = new Vector2(targetX, targetY);
     }
 
     private void OnRenamePressed()

@@ -16,6 +16,15 @@ public partial class Node2d : CharacterBody2D
     [Export] public float CollisionCooldown = 1.5f;
     [Export] public bool SpriteFacesRight = false;
 
+    [ExportCategory("Hunger")] [Export] public float HungerThreshold = 20f;
+    [Export] public float FoodDetectionRange = 120f;
+    [Export] public float BaseEatCooldown = 1.5f;
+    [Export] public float MinDetectionRange = 15f;
+
+    private FoodParticle _targetFood = null;
+    private bool _isSeekingFood = false;
+    private float _satiation = 0f;
+    private float _eatCooldownTimer = 0f;
     public FishData Data { get; private set; }
     public FishGrowthStage CurrentStage { get; private set; } = FishGrowthStage.Fry;
     public float AgeSec { get; private set; } = 0f;
@@ -30,13 +39,6 @@ public partial class Node2d : CharacterBody2D
 
     public FishData ParentB { get; private set; }
 
-
-    [ExportCategory("Hunger")] [Export] public float HungerThreshold = 10f;
-
-    [Export] public float FoodDetectionRange = 400f; // Радиус поиска еды
-
-    private FoodParticle _targetFood = null;
-    private bool _isSeekingFood = false;
     public event Action<Node2d> StageChanged;
 
     private Node2D _visualRoot;
@@ -381,6 +383,14 @@ public partial class Node2d : CharacterBody2D
     private void ProcessHunger(float delta)
     {
         TimeSinceLastFed += delta;
+
+        if (_satiation > 0f)
+            _satiation -= delta * 0.15f;
+        else
+            _satiation = 0f;
+
+        if (_eatCooldownTimer > 0f)
+            _eatCooldownTimer -= delta;
     }
 
     private void EatFish(Node2d prey)
@@ -393,6 +403,7 @@ public partial class Node2d : CharacterBody2D
 
         prey.QueueFree();
     }
+
     private void AdvanceGrowth(float delta)
     {
         if (Data == null)
@@ -547,21 +558,22 @@ public partial class Node2d : CharacterBody2D
 
     private void SeekFood()
     {
-        if (TimeSinceLastFed < HungerThreshold)
+        if (_eatCooldownTimer > 0f)
         {
             _isSeekingFood = false;
             _targetFood = null;
             return;
         }
 
-        _isSeekingFood = true;
-
         if (IsInstanceValid(_targetFood)
-            && GlobalPosition.DistanceTo(_targetFood.GlobalPosition) <= FoodDetectionRange)
+            && GlobalPosition.DistanceTo(_targetFood.GlobalPosition) <= GetCurrentDetectionRange())
             return;
 
         _targetFood = null;
-        var closestDist = FoodDetectionRange;
+        _isSeekingFood = false;
+
+        var searchRange = GetCurrentDetectionRange();
+        var closestDist = searchRange;
 
         foreach (var node in GetTree().GetNodesInGroup("food"))
         {
@@ -573,8 +585,15 @@ public partial class Node2d : CharacterBody2D
             {
                 closestDist = dist;
                 _targetFood = food;
+                _isSeekingFood = true;
             }
         }
+    }
+
+    private float GetCurrentDetectionRange()
+    {
+        var t = Mathf.Clamp(_satiation / 15f, 0f, 1f);
+        return Mathf.Lerp(FoodDetectionRange, MinDetectionRange, t);
     }
 
     private bool MoveTowardsFood()
@@ -590,7 +609,7 @@ public partial class Node2d : CharacterBody2D
         _direction = dirToFood;
         ApplyVisualDirection(_direction);
 
-        if (GlobalPosition.DistanceTo(_targetFood.GlobalPosition) < 15f)
+        if (GlobalPosition.DistanceTo(_targetFood.GlobalPosition) < 25f)
         {
             EatFood(_targetFood);
             return false;
@@ -599,17 +618,31 @@ public partial class Node2d : CharacterBody2D
         return true;
     }
 
+
+    public float OverfedAmount { get; private set; } = 0f;
+
     private void EatFood(FoodParticle food)
     {
         if (!IsInstanceValid(food))
             return;
 
-        Feed(food.NutritionValue);
-        food.Consume();
+        var wasFull = _satiation > 10f;
 
+        Feed(food.NutritionValue);
+        _satiation += food.NutritionValue;
+
+
+        if (wasFull)
+        {
+            OverfedAmount += food.NutritionValue;
+            GD.Print($"[Overfed] {FishName}: {OverfedAmount:F0}");
+        }
+
+        var cooldown = Mathf.Min(BaseEatCooldown + _satiation * 0.08f, 2.5f);
+        _eatCooldownTimer = cooldown;
+
+        food.Consume();
         _targetFood = null;
         _isSeekingFood = false;
-
-        GD.Print($"[Feed] {FishName} ate food! Total: {FoodEaten:F0}, hunger reset");
     }
 }
