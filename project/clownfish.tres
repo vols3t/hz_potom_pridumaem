@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="FishData" format=3 uid="uid://ct5slvvoduelg"]
+
+[ext_resource type="Script" uid="uid://colku0fklb2ii" path="res://FishData.cs" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://8d1qu1iw52ox" path="res://assets/fishes/medium/clown-fish-medium.png" id="2_icon"]
+[ext_resource type="PackedScene" uid="uid://bgiqlv2kr3ftq" path="res://node_2d.tscn" id="3_scene"]
+
+[resource]
+script = ExtResource("1_script")
+FishName = "clownfish"
+Description = "Common starter fish"
+Price = 30
+FryDurationSec = 18.0
+TeenDurationSec = 25.0
+AdultStageCoins = 14
+BreedWeight = 1.3
+Icon = ExtResource("2_icon")
+FishScene = ExtResource("3_scene")

@@ -21,10 +21,15 @@ public partial class Hud : Control
     [Export] public PanelContainer BestiaryPanel;
     [Export] public PanelContainer SettingsPanel;
 
+    [Export] public BaseButton FeedBtn;
+    [Export] public FishInfoPanel FishInfoPanel;
+
     private global::ShopPanel _shopPanelScript;
     private global::MyFishPanel _myFishPanelScript;
     private global::BestiaryPanel _bestiaryPanelScript;
     private global::SettingsPanel _settingsPanelScript;
+
+    private Node2d _lastClickedFish;
 
     public override void _Ready()
     {
@@ -32,6 +37,7 @@ public partial class Hud : Control
         if (CurrentFishBtn != null) CurrentFishBtn.Pressed += OnCurrentFishPressed;
         if (BestiaryBtn != null) BestiaryBtn.Pressed += OnBestiaryPressed;
         if (SettingBtn != null) SettingBtn.Pressed += OnSettingsPressed;
+        if (FeedBtn != null) FeedBtn.Pressed += OnFeedPressed;
 
         _shopPanelScript = ShopPanel as global::ShopPanel;
         if (_shopPanelScript != null)
@@ -62,7 +68,10 @@ public partial class Hud : Control
             MoneyLabel.Text = $"Coins: {gm.Money:F0}";
 
         if (IncomeLabel != null)
-            IncomeLabel.Text = gm.LastEventText;
+        {
+            var fallbackIncome = $"+{gm.GetIncomePerSecond():F1}/sec";
+            IncomeLabel.Text = string.IsNullOrWhiteSpace(gm.LastEventText) ? fallbackIncome : gm.LastEventText;
+        }
 
         if (FishCountDisplay != null)
             FishCountDisplay.SetAmount(gm.FishCount);
@@ -79,6 +88,33 @@ public partial class Hud : Control
             UniqueCountLabel.Text = $"Unique: {gm.GetFishCountByRarity(FishRarity.Unique)}";
     }
 
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (@event is not InputEventMouseButton mouseBtn
+            || mouseBtn.ButtonIndex != MouseButton.Left
+            || !mouseBtn.Pressed)
+        {
+            return;
+        }
+
+        if (FishInfoPanel != null && FishInfoPanel.Visible)
+        {
+            GetTree().CreateTimer(0.05f).Timeout += () =>
+            {
+                if (FishInfoPanel.GetSelectedFish() == _lastClickedFish)
+                    return;
+
+                FishInfoPanel.Close();
+            };
+        }
+    }
+
+    public void OnFishClicked(Node2d fish)
+    {
+        _lastClickedFish = fish;
+        FishInfoPanel?.ShowForFish(fish);
+    }
+
     private void OnCurrentFishPressed()
     {
         if (_myFishPanelScript != null)
@@ -90,6 +126,7 @@ public partial class Hud : Control
                 _shopPanelScript?.CloseShop();
                 _bestiaryPanelScript?.ClosePanel();
                 _settingsPanelScript?.ClosePanel();
+                CloseFishInfoPanel();
                 _myFishPanelScript.OpenPanel();
             }
 
@@ -111,6 +148,7 @@ public partial class Hud : Control
                 _shopPanelScript?.CloseShop();
                 _myFishPanelScript?.ClosePanel();
                 _settingsPanelScript?.ClosePanel();
+                CloseFishInfoPanel();
                 _bestiaryPanelScript.OpenPanel();
             }
 
@@ -132,8 +170,10 @@ public partial class Hud : Control
                 _myFishPanelScript?.ClosePanel();
                 _bestiaryPanelScript?.ClosePanel();
                 _settingsPanelScript?.ClosePanel();
+                CloseFishInfoPanel();
                 _shopPanelScript.OpenShop();
             }
+
             return;
         }
 
@@ -152,6 +192,7 @@ public partial class Hud : Control
                 _shopPanelScript?.CloseShop();
                 _myFishPanelScript?.ClosePanel();
                 _bestiaryPanelScript?.ClosePanel();
+                CloseFishInfoPanel();
                 _settingsPanelScript.OpenPanel();
             }
 
@@ -160,6 +201,18 @@ public partial class Hud : Control
 
         if (SettingsPanel != null)
             SettingsPanel.Visible = !SettingsPanel.Visible;
+    }
+
+    private void OnFeedPressed()
+    {
+        var defaultFood = GD.Load<FoodData>("res://assets/meal/basic_food.tres");
+        if (defaultFood == null)
+        {
+            GD.PrintErr("Food resource not found!");
+            return;
+        }
+
+        FoodDropper.Instance?.StartDropMode(defaultFood);
     }
 
     private void OnShopClosed()
@@ -206,6 +259,12 @@ public partial class Hud : Control
             SettingsPanel.Visible = false;
     }
 
+    private void CloseFishInfoPanel()
+    {
+        if (FishInfoPanel != null && FishInfoPanel.Visible)
+            FishInfoPanel.Close();
+    }
+
     public override void _ExitTree()
     {
         if (_shopPanelScript != null)
@@ -219,5 +278,11 @@ public partial class Hud : Control
 
         if (_settingsPanelScript != null)
             _settingsPanelScript.PanelClosed -= OnSettingsClosed;
+
+        if (ShopBtn != null) ShopBtn.Pressed -= OnShopPressed;
+        if (CurrentFishBtn != null) CurrentFishBtn.Pressed -= OnCurrentFishPressed;
+        if (BestiaryBtn != null) BestiaryBtn.Pressed -= OnBestiaryPressed;
+        if (SettingBtn != null) SettingBtn.Pressed -= OnSettingsPressed;
+        if (FeedBtn != null) FeedBtn.Pressed -= OnFeedPressed;
     }
 }

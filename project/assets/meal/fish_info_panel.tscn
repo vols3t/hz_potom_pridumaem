@@ -1,0 +1,73 @@
+[gd_scene format=3 uid="uid://bahmfwssft60l"]
+
+[ext_resource type="Script" uid="uid://wjrqukuww05" path="res://FishInfoPanel.cs" id="1_p5ep6"]
+
+[node name="FishInfoPanel" type="PanelContainer" unique_id=1718378493 node_paths=PackedStringArray("NameEdit", "RenameBtn", "SpeciesLabel", "StageLabel", "AgeLabel", "IncomeLabel", "HungerLabel", "MutationsTitle", "MutationsList", "CloseBtn")]
+custom_minimum_size = Vector2(250, 0)
+offset_right = 141.0
+offset_bottom = 63.0
+script = ExtResource("1_p5ep6")
+NameEdit = NodePath("MarginContainer/VBoxContainer/HBoxContainer/NameEdit")
+RenameBtn = NodePath("MarginContainer/VBoxContainer/HBoxContainer/RenameBtn")
+SpeciesLabel = NodePath("MarginContainer/VBoxContainer/SpeciesLabel")
+StageLabel = NodePath("MarginContainer/VBoxContainer/StageLabel")
+AgeLabel = NodePath("MarginContainer/VBoxContainer/AgeLabel")
+IncomeLabel = NodePath("MarginContainer/VBoxContainer/IncomeLabel")
+HungerLabel = NodePath("MarginContainer/VBoxContainer/HungerLabel")
+MutationsTitle = NodePath("MarginContainer/VBoxContainer/MutationsTitle")
+MutationsList = NodePath("MarginContainer/VBoxContainer/MutationsList")
+CloseBtn = NodePath("MarginContainer/VBoxContainer/CloseBtn")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=1580107858]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=1698464240]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=1599635411]
+layout_mode = 2
+
+[node name="NameEdit" type="LineEdit" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=1970129390]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Введи имя"
+
+[node name="RenameBtn" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=849827178]
+layout_mode = 2
+text = "✓"
+
+[node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer" unique_id=358749555]
+layout_mode = 2
+
+[node name="SpeciesLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1321602691]
+layout_mode = 2
+
+[node name="StageLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1851909371]
+layout_mode = 2
+
+[node name="AgeLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=509481910]
+layout_mode = 2
+
+[node name="IncomeLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1189329438]
+layout_mode = 2
+
+[node name="HungerLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=938532303]
+layout_mode = 2
+
+[node name="HSeparator2" type="HSeparator" parent="MarginContainer/VBoxContainer" unique_id=18312868]
+layout_mode = 2
+
+[node name="MutationsTitle" type="Label" parent="MarginContainer/VBoxContainer" unique_id=875257151]
+layout_mode = 2
+
+[node name="MutationsList" type="VBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=1098905799]
+layout_mode = 2
+
+[node name="CloseBtn" type="Button" parent="MarginContainer/VBoxContainer" unique_id=1827109155]
+layout_mode = 2
+text = "Закрыть"

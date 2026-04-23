@@ -14,17 +14,20 @@ public partial class GameManager : Node
     [Export] public int RareBirthCoins = 28;
     [Export] public int UniqueBirthCoins = 55;
 
-    [ExportCategory("Breeding")]
-    [Export] public float BreedChanceOnContact = 0.45f;
-    [Export] public float ParentBreedCooldownSec = 12f;
+    [ExportCategory("Breeding")] [Export] public float BreedChanceOnContact = 0.45f;
+    [Export] public float ParentBreedCooldownSec = 25f;
     [Export] public float MeetingCheckIntervalSec = 0.5f;
-    [Export] public float MeetingDistance = 85f;
+    [Export] public float MeetingDistance = 100f;
+    [Export] public float HybridChance = 0.3f;
+
+    [ExportCategory("Mutations")] [Export] public float MutationCheckInterval = 2.0f;
 
     private readonly List<Node2d> _fishList = new();
     private readonly Dictionary<Node2d, float> _nextBreedAtSec = new();
     private readonly Dictionary<string, int> _ownedShopItems = new();
     private readonly HashSet<FishData> _discoveredFish = new();
     private readonly Dictionary<string, FishData> _discoveredFishByName = new(System.StringComparer.OrdinalIgnoreCase);
+    private readonly List<FishMutation> _mutations = new();
 
     private Node2D _aquarium;
     private FishData[] _catalog = System.Array.Empty<FishData>();
@@ -32,6 +35,7 @@ public partial class GameManager : Node
     private Vector2 _spawnAreaMax = new(500, 400);
     private float _elapsedSec = 0f;
     private float _meetingTimerSec = 0f;
+    private float _mutationTimerSec = 0f;
 
     public override void _EnterTree()
     {
@@ -44,15 +48,30 @@ public partial class GameManager : Node
         QueueFree();
     }
 
+    public override void _Ready() =>
+        LoadMutations();
+
+
     public override void _Process(double delta)
     {
-        _elapsedSec += (float)delta;
-        _meetingTimerSec += (float)delta;
+        var d = (float)delta;
 
+        _elapsedSec += d;
+
+        Money += GetIncomePerSecond() * d;
+
+        _meetingTimerSec += d;
         if (_meetingTimerSec >= MeetingCheckIntervalSec)
         {
             _meetingTimerSec = 0f;
             EvaluateMeetings();
+        }
+
+        _mutationTimerSec += d;
+        if (_mutationTimerSec >= MutationCheckInterval)
+        {
+            _mutationTimerSec = 0f;
+            EvaluateMutations();
         }
     }
 
@@ -72,6 +91,8 @@ public partial class GameManager : Node
         _fishList.Add(fish);
         fish.StageChanged += OnFishStageChanged;
         _nextBreedAtSec[fish] = 0f;
+
+        fish.Clicked += OnFishClicked;
     }
 
     public void UnregisterFish(Node2d fish)
@@ -80,6 +101,7 @@ public partial class GameManager : Node
             return;
 
         fish.StageChanged -= OnFishStageChanged;
+        fish.Clicked -= OnFishClicked;
 
         _fishList.Remove(fish);
         _nextBreedAtSec.Remove(fish);
@@ -181,10 +203,8 @@ public partial class GameManager : Node
     {
         var count = 0;
         foreach (var fish in _fishList)
-        {
             if (fish.Data != null && fish.Data.Rarity == rarity)
                 count++;
-        }
 
         return count;
     }
@@ -265,6 +285,37 @@ public partial class GameManager : Node
         return true;
     }
 
+    public float GetIncomePerSecond()
+    {
+        var total = 0f;
+        foreach (var fish in _fishList)
+            total += GetFishIncome(fish);
+
+        return total;
+    }
+
+    private float GetFishIncome(Node2d fish)
+    {
+        if (fish?.Data == null)
+            return 0f;
+
+        var income = fish.Data.IncomePerSec;
+
+        income *= fish.Data.GetRarityMultiplier();
+
+        income *= fish.CurrentStage switch
+        {
+            FishGrowthStage.Fry => 0.25f,
+            FishGrowthStage.Teen => 0.6f,
+            FishGrowthStage.Adult => 1.0f,
+            _ => 1.0f
+        };
+
+        income *= fish.GetIncomeMultiplier();
+
+        return income;
+    }
+
     private void OnFishStageChanged(Node2d fish)
     {
         if (fish?.Data == null)
@@ -276,6 +327,95 @@ public partial class GameManager : Node
 
         AddCoins(reward, $"{fish.FishName} reached {fish.CurrentStage}: +{reward}");
     }
+
+    private void LoadMutations()
+    {
+        _mutations.Clear();
+
+        const string mutationsDirPath = "res://assets/mutations";
+
+        if (!DirAccess.DirExistsAbsolute(mutationsDirPath))
+        {
+            GD.Print($"[Mutations] Directory not found: {mutationsDirPath}");
+            return;
+        }
+
+        using var dir = DirAccess.Open(mutationsDirPath);
+        if (dir == null)
+        {
+            GD.PrintErr($"[Mutations] Failed to open directory: {mutationsDirPath}");
+            return;
+        }
+
+        dir.ListDirBegin();
+        while (true)
+        {
+            var fileName = dir.GetNext();
+            if (string.IsNullOrEmpty(fileName))
+                break;
+
+            if (dir.CurrentIsDir())
+                continue;
+
+            if (!fileName.EndsWith(".tres") && !fileName.EndsWith(".res"))
+                continue;
+
+            var fullPath = $"{mutationsDirPath}/{fileName}";
+            var mutation = GD.Load<FishMutation>(fullPath);
+            if (mutation == null)
+            {
+                GD.PrintErr($"[Mutations] Failed to load: {fullPath}");
+                continue;
+            }
+
+            _mutations.Add(mutation);
+            GD.Print($"[Mutations] Loaded: {mutation.MutationName}");
+        }
+
+        dir.ListDirEnd();
+    }
+
+    private void EvaluateMutations()
+    {
+        if (_mutations.Count == 0)
+            return;
+
+        foreach (var fish in _fishList)
+        {
+            if (fish?.Data == null)
+                continue;
+
+            foreach (var mutation in _mutations)
+            {
+                if (mutation.RequiresAdult && !fish.IsAdult)
+                    continue;
+
+                var alreadyHas = false;
+                foreach (var m in fish.Mutations)
+                    if (m.MutationName == mutation.MutationName)
+                    {
+                        alreadyHas = true;
+                        break;
+                    }
+
+                if (alreadyHas)
+                    continue;
+
+                var triggered = mutation.Trigger switch
+                {
+                    MutationTrigger.FoodEaten => fish.FoodEaten >= mutation.TriggerThreshold,
+                    MutationTrigger.Starving => fish.TimeSinceLastFed >= mutation.TriggerThreshold,
+                    MutationTrigger.AgeReached => fish.AgeSec >= mutation.TriggerThreshold,
+                    _ => false
+                };
+
+                if (triggered)
+                    fish.AddMutation(mutation);
+            }
+        }
+    }
+
+    public IReadOnlyList<FishMutation> GetAvailableMutations() => _mutations;
 
     private void EvaluateMeetings()
     {
@@ -312,11 +452,10 @@ public partial class GameManager : Node
         if (!CanBreed(parentA) || !CanBreed(parentB))
             return false;
 
-        if (GD.Randf() > BreedChanceOnContact)
+        if (!AreCompatible(parentA.Data, parentB.Data))
             return false;
 
-        var offspringData = RollOffspring(parentA.Data, parentB.Data);
-        if (offspringData == null)
+        if (GD.Randf() > BreedChanceOnContact)
             return false;
 
         var spawnPos = ClampToSpawnArea(contactPos + new Vector2(
@@ -324,8 +463,23 @@ public partial class GameManager : Node
             (float)GD.RandRange(-20.0, 20.0)
         ));
 
-        var offspringName = ResolveOffspringName(parentA, parentB, offspringData);
-        var spawned = SpawnFish(offspringData, true, spawnPos, offspringName);
+        Node2d spawned;
+
+        var differentSpecies = !string.IsNullOrEmpty(parentA.Data.SpeciesId)
+                               && !string.IsNullOrEmpty(parentB.Data.SpeciesId)
+                               && parentA.Data.SpeciesId != parentB.Data.SpeciesId;
+
+        if (differentSpecies && GD.Randf() < HybridChance)
+            spawned = SpawnHybridFish(parentA.Data, parentB.Data, spawnPos);
+        else
+        {
+            var offspringData = RollOffspring(parentA.Data, parentB.Data);
+            if (offspringData == null)
+                return false;
+
+            var offspringName = ResolveOffspringName(parentA, parentB, offspringData);
+            spawned = SpawnFish(offspringData, true, spawnPos, offspringName);
+        }
         if (spawned == null)
             return false;
 
@@ -334,8 +488,9 @@ public partial class GameManager : Node
         _nextBreedAtSec[parentB] = nextTime;
         _nextBreedAtSec[spawned] = _elapsedSec + ParentBreedCooldownSec * 0.8f;
 
-        var birthReward = GetBirthReward(offspringData.Rarity);
-        AddCoins(birthReward, $"New {offspringData.Rarity} fish born: +{birthReward}");
+        var rarity = spawned.Data?.Rarity ?? FishRarity.Common;
+        var birthReward = GetBirthReward(rarity);
+        AddCoins(birthReward, $"New {rarity} fish born: +{birthReward}");
         return true;
     }
 
@@ -346,6 +501,43 @@ public partial class GameManager : Node
 
         var nextTime = _nextBreedAtSec.TryGetValue(fish, out var v) ? v : 0f;
         return _elapsedSec >= nextTime;
+    }
+
+    private bool AreCompatible(FishData a, FishData b)
+    {
+        var aId = NormalizeSpeciesId(a.SpeciesId);
+        var bId = NormalizeSpeciesId(b.SpeciesId);
+
+
+        if (!string.IsNullOrEmpty(aId) && aId == bId) return true;
+
+        if (a.CompatibleSpeciesIds != null)
+        {
+            foreach (var id in a.CompatibleSpeciesIds)
+            {
+                var normalized = NormalizeSpeciesId(id);
+                if (normalized == bId) return true;
+            }
+        }
+
+        if (b.CompatibleSpeciesIds != null)
+        {
+            foreach (var id in b.CompatibleSpeciesIds)
+            {
+                var normalized = NormalizeSpeciesId(id);
+                if (normalized == aId) return true;
+            }
+        }
+
+        return false;
+    }
+
+    private string NormalizeSpeciesId(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "";
+
+        return value.Trim().ToLowerInvariant();
     }
 
     private FishData RollOffspring(FishData parentA, FishData parentB)
@@ -373,10 +565,8 @@ public partial class GameManager : Node
 
         var totalWeight = 0f;
         foreach (var fishData in _catalog)
-        {
             if (fishData != null)
                 totalWeight += Mathf.Max(0.01f, fishData.BreedWeight);
-        }
 
         if (totalWeight <= 0f)
             return _catalog[0];
@@ -426,6 +616,27 @@ public partial class GameManager : Node
         return null;
     }
 
+    private Node2d SpawnHybridFish(FishData momData, FishData dadData, Vector2 spawnPos)
+    {
+        if (_aquarium == null || FishCount >= MaxFishCount)
+            return null;
+
+        if (momData?.FishScene == null)
+            return null;
+
+        var fishNode = momData.FishScene.Instantiate<Node2D>();
+        if (fishNode is not Node2d fishScript)
+            return null;
+
+        fishScript.SetupAsHybrid(momData, dadData, true);
+        fishNode.Position = ClampToSpawnArea(spawnPos);
+
+        _aquarium.AddChild(fishNode);
+
+        GD.Print($"[Hybrid] Born: {fishScript.FishName}");
+        return fishScript;
+    }
+
     private Vector2 GetRandomSpawnPosition()
     {
         var x = (float)GD.RandRange(_spawnAreaMin.X, _spawnAreaMax.X);
@@ -433,13 +644,11 @@ public partial class GameManager : Node
         return new Vector2(x, y);
     }
 
-    private Vector2 ClampToSpawnArea(Vector2 pos)
-    {
-        return new Vector2(
+    private Vector2 ClampToSpawnArea(Vector2 pos) =>
+        new(
             Mathf.Clamp(pos.X, _spawnAreaMin.X, _spawnAreaMax.X),
             Mathf.Clamp(pos.Y, _spawnAreaMin.Y, _spawnAreaMax.Y)
         );
-    }
 
     private int GetBirthReward(FishRarity rarity)
     {
@@ -471,5 +680,46 @@ public partial class GameManager : Node
     private static string NormalizeFishName(string fishName)
     {
         return string.IsNullOrWhiteSpace(fishName) ? string.Empty : fishName.Trim();
+    }
+
+    private void OnFishClicked(Node2d fish)
+    {
+        var hud = GetTree().CurrentScene.GetNodeOrNull<Hud>("UI/HUD");
+
+        hud?.OnFishClicked(fish);
+    }
+
+    public override void _Input(InputEvent @event)
+    {
+        if (@event is InputEventMouseButton mouseBtn
+            && mouseBtn.ButtonIndex == MouseButton.Left
+            && mouseBtn.Pressed)
+        {
+            var mousePos = GetViewport().GetMousePosition();
+            var clickedFish = FindClosestFishAt(mousePos, 50f);
+
+            if (clickedFish != null) OnFishClicked(clickedFish);
+        }
+    }
+
+    private Node2d FindClosestFishAt(Vector2 pos, float maxDistance)
+    {
+        Node2d closest = null;
+        var closestDist = maxDistance;
+
+        foreach (var fish in _fishList)
+        {
+            if (fish == null)
+                continue;
+
+            var dist = fish.GlobalPosition.DistanceTo(pos);
+            if (dist < closestDist)
+            {
+                closestDist = dist;
+                closest = fish;
+            }
+        }
+
+        return closest;
     }
 }

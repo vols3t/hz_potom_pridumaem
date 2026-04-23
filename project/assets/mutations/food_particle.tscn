@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://b2lxntg248lln"]
+
+[ext_resource type="Script" uid="uid://bkcd16d16v27r" path="res://FoodParticle.cs" id="1_2sili"]
+[ext_resource type="Texture2D" uid="uid://bo7lumn88p30v" path="res://assets/digits/zero.png" id="2_fnqkv"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_8p182"]
+
+[node name="FoodParticle" type="Area2D" unique_id=1270895942]
+script = ExtResource("1_2sili")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1676001593]
+scale = Vector2(0.03, 0.03)
+texture = ExtResource("2_fnqkv")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=721119397]
+shape = SubResource("CircleShape2D_8p182")

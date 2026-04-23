@@ -1,10 +1,11 @@
-[gd_scene format=3 uid="uid://uxyui01ie1go"]
+﻿[gd_scene format=3 uid="uid://uxyui01ie1go"]
 
 [ext_resource type="PackedScene" uid="uid://bgiqlv2kr3ftq" path="res://node_2d.tscn" id="1_qnukr"]
 [ext_resource type="Texture2D" uid="uid://ddxmxgyyfy8mn" path="res://assets/fishes/medium/clown-fish-medium.png" id="1_vgbo8"]
 [ext_resource type="Script" uid="uid://brpiaigkw02tp" path="res://Hud.cs" id="3_ojo41"]
 [ext_resource type="Script" uid="uid://2u6f6w33m2yr" path="res://ShopPanel.cs" id="4_5kyaj"]
 [ext_resource type="PackedScene" uid="uid://c74odbuwg5u0n" path="res://shop_item.tscn" id="5_6hkmb"]
+[ext_resource type="Resource" uid="uid://5cpvr4706vct" path="res://angelfish.tres" id="5_8yxfx"]
 [ext_resource type="Resource" path="res://goldfish.tres" id="6_3tg85"]
 [ext_resource type="Resource" path="res://neonfish.tres" id="7_1r8n5"]
 [ext_resource type="Resource" path="res://uniquefish.tres" id="8_4xpxf"]
@@ -20,6 +21,9 @@
 [ext_resource type="Script" path="res://MyFishPanel.cs" id="18_2h1my"]
 [ext_resource type="Script" path="res://BestiaryPanel.cs" id="19_q3lws"]
 [ext_resource type="Script" path="res://SettingsPanel.cs" id="20_a5k0d"]
+[ext_resource type="Script" uid="uid://mkmcpbm1flj2" path="res://FoodDropper.cs" id="21_huqxr"]
+[ext_resource type="PackedScene" uid="uid://bahmfwssft60l" path="res://assets/meal/fish_info_panel.tscn" id="22_yn4mw"]
+[ext_resource type="PackedScene" uid="uid://b2lxntg248lln" path="res://assets/mutations/food_particle.tscn" id="23_yn4mw"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_vgbo8"]
 size = Vector2(1353, 10)
@@ -88,9 +92,13 @@ InitialFishData = ExtResource("6_3tg85")
 position = Vector2(900, 420)
 InitialFishData = ExtResource("7_1r8n5")
 
+[node name="fish3" parent="." unique_id=1327035935 instance=ExtResource("1_qnukr")]
+position = Vector2(900, 539)
+InitialFishData = ExtResource("5_8yxfx")
+
 [node name="UI" type="CanvasLayer" parent="." unique_id=865599142]
 
-[node name="HUD" type="Control" parent="UI" unique_id=1692696274 node_paths=PackedStringArray("MoneyLabel", "CoinsDisplay", "IncomeLabel", "FishCountLabel", "FishCountDisplay", "ShopBtn", "CurrentFishBtn", "BestiaryBtn", "SettingBtn", "ShopPanel", "MyFishPanel", "BestiaryPanel", "SettingsPanel")]
+[node name="HUD" type="Control" parent="UI" unique_id=1692696274 node_paths=PackedStringArray("MoneyLabel", "CoinsDisplay", "IncomeLabel", "FishCountLabel", "FishCountDisplay", "ShopBtn", "CurrentFishBtn", "BestiaryBtn", "SettingBtn", "ShopPanel", "MyFishPanel", "BestiaryPanel", "SettingsPanel", "FeedBtn", "FishInfoPanel")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -111,6 +119,8 @@ ShopPanel = NodePath("ShopPanel")
 MyFishPanel = NodePath("MyFishPanel")
 BestiaryPanel = NodePath("BestiaryPanel")
 SettingsPanel = NodePath("SettingsPanel")
+FeedBtn = NodePath("RightPanel/MarginContainer/VBoxContainer/FoodButton")
+FishInfoPanel = NodePath("FishInfoPanel")
 
 [node name="TopPanel" type="PanelContainer" parent="UI/HUD" unique_id=2111700529]
 layout_mode = 1
@@ -324,7 +334,7 @@ offset_bottom = -8.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("19_q3lws")
-CatalogFish = Array[Object]([ExtResource("6_3tg85"), ExtResource("7_1r8n5"), ExtResource("8_4xpxf")])
+CatalogFish = Array[Object]([ExtResource("6_3tg85"), ExtResource("7_1r8n5"), ExtResource("5_8yxfx"), ExtResource("8_4xpxf")])
 
 [node name="SettingsPanel" type="PanelContainer" parent="UI/HUD" unique_id=197521833]
 visible = false
@@ -353,7 +363,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("4_5kyaj")
 ShopItemScene = ExtResource("5_6hkmb")
-AvailableFish = Array[Object]([ExtResource("6_3tg85"), ExtResource("7_1r8n5"), ExtResource("8_4xpxf")])
+AvailableFish = Array[Object]([ExtResource("6_3tg85"), ExtResource("7_1r8n5"), ExtResource("5_8yxfx"), ExtResource("8_4xpxf")])
 ItemList = NodePath("MarginContainer/VBoxContainer/ScrollContainer/ItemList")
 FishTabBtn = NodePath("MarginContainer/VBoxContainer/HBoxContainer/FishTabBtn")
 FoodTabBtn = NodePath("MarginContainer/VBoxContainer/HBoxContainer/FoodTabBtn")
@@ -416,3 +426,19 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 color = Color(0, 0, 0, 0)
+
+[node name="FishInfoPanel" parent="UI/HUD" unique_id=1718378493 instance=ExtResource("22_yn4mw")]
+visible = false
+layout_mode = 0
+offset_left = 1044.0
+offset_top = 301.0
+offset_right = 1294.0
+offset_bottom = 609.0
+
+[node name="FoodDropper" type="Node" parent="." unique_id=1323159539]
+script = ExtResource("21_huqxr")
+FoodParticleScene = ExtResource("23_yn4mw")
+AquariumLeft = 42.0
+AquariumRight = 1395.0
+AquariumTop = 95.0
+AquariumBottom = 640.0
