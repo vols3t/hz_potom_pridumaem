@@ -15,17 +15,23 @@ public partial class Hud : Control
     [Export] public BaseButton ShopBtn;
     [Export] public BaseButton CurrentFishBtn;
     [Export] public BaseButton BestiaryBtn;
+    [Export] public BaseButton SettingBtn;
     [Export] public PanelContainer ShopPanel;
     [Export] public PanelContainer MyFishPanel;
+    [Export] public PanelContainer BestiaryPanel;
+    [Export] public PanelContainer SettingsPanel;
 
     private global::ShopPanel _shopPanelScript;
     private global::MyFishPanel _myFishPanelScript;
+    private global::BestiaryPanel _bestiaryPanelScript;
+    private global::SettingsPanel _settingsPanelScript;
 
     public override void _Ready()
     {
         if (ShopBtn != null) ShopBtn.Pressed += OnShopPressed;
         if (CurrentFishBtn != null) CurrentFishBtn.Pressed += OnCurrentFishPressed;
         if (BestiaryBtn != null) BestiaryBtn.Pressed += OnBestiaryPressed;
+        if (SettingBtn != null) SettingBtn.Pressed += OnSettingsPressed;
 
         _shopPanelScript = ShopPanel as global::ShopPanel;
         if (_shopPanelScript != null)
@@ -34,6 +40,14 @@ public partial class Hud : Control
         _myFishPanelScript = MyFishPanel as global::MyFishPanel;
         if (_myFishPanelScript != null)
             _myFishPanelScript.PanelClosed += OnMyFishClosed;
+
+        _bestiaryPanelScript = BestiaryPanel as global::BestiaryPanel;
+        if (_bestiaryPanelScript != null)
+            _bestiaryPanelScript.PanelClosed += OnBestiaryClosed;
+
+        _settingsPanelScript = SettingsPanel as global::SettingsPanel;
+        if (_settingsPanelScript != null)
+            _settingsPanelScript.PanelClosed += OnSettingsClosed;
     }
 
     public override void _Process(double delta)
@@ -74,6 +88,8 @@ public partial class Hud : Control
             else
             {
                 _shopPanelScript?.CloseShop();
+                _bestiaryPanelScript?.ClosePanel();
+                _settingsPanelScript?.ClosePanel();
                 _myFishPanelScript.OpenPanel();
             }
 
@@ -86,7 +102,23 @@ public partial class Hud : Control
 
     private void OnBestiaryPressed()
     {
-        GD.Print("Bestiary UI can be added here");
+        if (_bestiaryPanelScript != null)
+        {
+            if (_bestiaryPanelScript.Visible)
+                _bestiaryPanelScript.ClosePanel();
+            else
+            {
+                _shopPanelScript?.CloseShop();
+                _myFishPanelScript?.ClosePanel();
+                _settingsPanelScript?.ClosePanel();
+                _bestiaryPanelScript.OpenPanel();
+            }
+
+            return;
+        }
+
+        if (BestiaryPanel != null)
+            BestiaryPanel.Visible = !BestiaryPanel.Visible;
     }
 
     private void OnShopPressed()
@@ -98,6 +130,8 @@ public partial class Hud : Control
             else
             {
                 _myFishPanelScript?.ClosePanel();
+                _bestiaryPanelScript?.ClosePanel();
+                _settingsPanelScript?.ClosePanel();
                 _shopPanelScript.OpenShop();
             }
             return;
@@ -105,6 +139,27 @@ public partial class Hud : Control
 
         if (ShopPanel != null)
             ShopPanel.Visible = !ShopPanel.Visible;
+    }
+
+    private void OnSettingsPressed()
+    {
+        if (_settingsPanelScript != null)
+        {
+            if (_settingsPanelScript.Visible)
+                _settingsPanelScript.ClosePanel();
+            else
+            {
+                _shopPanelScript?.CloseShop();
+                _myFishPanelScript?.ClosePanel();
+                _bestiaryPanelScript?.ClosePanel();
+                _settingsPanelScript.OpenPanel();
+            }
+
+            return;
+        }
+
+        if (SettingsPanel != null)
+            SettingsPanel.Visible = !SettingsPanel.Visible;
     }
 
     private void OnShopClosed()
@@ -115,6 +170,16 @@ public partial class Hud : Control
     private void OnMyFishClosed()
     {
         CloseMyFishPanel();
+    }
+
+    private void OnBestiaryClosed()
+    {
+        CloseBestiaryPanel();
+    }
+
+    private void OnSettingsClosed()
+    {
+        CloseSettingsPanel();
     }
 
     private void CloseShop()
@@ -129,6 +194,18 @@ public partial class Hud : Control
             MyFishPanel.Visible = false;
     }
 
+    private void CloseBestiaryPanel()
+    {
+        if (BestiaryPanel != null)
+            BestiaryPanel.Visible = false;
+    }
+
+    private void CloseSettingsPanel()
+    {
+        if (SettingsPanel != null)
+            SettingsPanel.Visible = false;
+    }
+
     public override void _ExitTree()
     {
         if (_shopPanelScript != null)
@@ -136,5 +213,11 @@ public partial class Hud : Control
 
         if (_myFishPanelScript != null)
             _myFishPanelScript.PanelClosed -= OnMyFishClosed;
+
+        if (_bestiaryPanelScript != null)
+            _bestiaryPanelScript.PanelClosed -= OnBestiaryClosed;
+
+        if (_settingsPanelScript != null)
+            _settingsPanelScript.PanelClosed -= OnSettingsClosed;
     }
 }

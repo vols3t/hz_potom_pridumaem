@@ -18,6 +18,8 @@
 [ext_resource type="Texture2D" path="res://assets/coins/coins.png" id="16_t0uma"]
 [ext_resource type="Texture2D" path="res://assets/fish-counts.png" id="17_vqk9c"]
 [ext_resource type="Script" path="res://MyFishPanel.cs" id="18_2h1my"]
+[ext_resource type="Script" path="res://BestiaryPanel.cs" id="19_q3lws"]
+[ext_resource type="Script" path="res://SettingsPanel.cs" id="20_a5k0d"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_vgbo8"]
 size = Vector2(1353, 10)
@@ -88,7 +90,7 @@ InitialFishData = ExtResource("7_1r8n5")
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=865599142]
 
-[node name="HUD" type="Control" parent="UI" unique_id=1692696274 node_paths=PackedStringArray("MoneyLabel", "CoinsDisplay", "IncomeLabel", "FishCountLabel", "FishCountDisplay", "ShopBtn", "CurrentFishBtn", "BestiaryBtn", "ShopPanel", "MyFishPanel")]
+[node name="HUD" type="Control" parent="UI" unique_id=1692696274 node_paths=PackedStringArray("MoneyLabel", "CoinsDisplay", "IncomeLabel", "FishCountLabel", "FishCountDisplay", "ShopBtn", "CurrentFishBtn", "BestiaryBtn", "SettingBtn", "ShopPanel", "MyFishPanel", "BestiaryPanel", "SettingsPanel")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -104,8 +106,11 @@ FishCountDisplay = NodePath("TopPanel/MarginContainer/HBoxContainer/FishCountDis
 ShopBtn = NodePath("RightPanel/MarginContainer/VBoxContainer/ShopButton")
 CurrentFishBtn = NodePath("RightPanel/MarginContainer/VBoxContainer/MyFishButton")
 BestiaryBtn = NodePath("RightPanel/MarginContainer/VBoxContainer/BestiaryButton")
+SettingBtn = NodePath("RightPanel/MarginContainer/VBoxContainer/SettingButton")
 ShopPanel = NodePath("ShopPanel")
 MyFishPanel = NodePath("MyFishPanel")
+BestiaryPanel = NodePath("BestiaryPanel")
+SettingsPanel = NodePath("SettingsPanel")
 
 [node name="TopPanel" type="PanelContainer" parent="UI/HUD" unique_id=2111700529]
 layout_mode = 1
@@ -307,6 +312,34 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("18_2h1my")
 
+[node name="BestiaryPanel" type="PanelContainer" parent="UI/HUD" unique_id=214112862]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 0.84
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("19_q3lws")
+CatalogFish = Array[Object]([ExtResource("6_3tg85"), ExtResource("7_1r8n5"), ExtResource("8_4xpxf")])
+
+[node name="SettingsPanel" type="PanelContainer" parent="UI/HUD" unique_id=197521833]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 0.84
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("20_a5k0d")
+BrightnessOverlay = NodePath("../../BrightnessOverlay")
+
 [node name="ShopPanel" type="PanelContainer" parent="UI/HUD" unique_id=790116681 node_paths=PackedStringArray("ItemList", "FishTabBtn", "FoodTabBtn", "OtherTabBtn", "Aquarium")]
 visible = false
 layout_mode = 1
@@ -374,3 +407,12 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
+[node name="BrightnessOverlay" type="ColorRect" parent="UI" unique_id=2031145611]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0)

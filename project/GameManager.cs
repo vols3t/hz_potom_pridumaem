@@ -23,6 +23,8 @@ public partial class GameManager : Node
     private readonly List<Node2d> _fishList = new();
     private readonly Dictionary<Node2d, float> _nextBreedAtSec = new();
     private readonly Dictionary<string, int> _ownedShopItems = new();
+    private readonly HashSet<FishData> _discoveredFish = new();
+    private readonly Dictionary<string, FishData> _discoveredFishByName = new(System.StringComparer.OrdinalIgnoreCase);
 
     private Node2D _aquarium;
     private FishData[] _catalog = System.Array.Empty<FishData>();
@@ -197,6 +199,58 @@ public partial class GameManager : Node
         }
 
         return snapshot;
+    }
+
+    public void NotifyFishDiscovered(FishData fishData, string fishName = null)
+    {
+        if (fishData == null || fishData.FishScene == null)
+            return;
+
+        _discoveredFish.Add(fishData);
+
+        var normalizedName = NormalizeFishName(fishName ?? fishData.FishName);
+        if (string.IsNullOrWhiteSpace(normalizedName))
+            return;
+
+        if (_discoveredFishByName.TryGetValue(normalizedName, out var existing) && existing != null)
+            return;
+
+        _discoveredFishByName[normalizedName] = fishData;
+    }
+
+    public bool HasDiscoveredFish(FishData fishData)
+    {
+        return fishData != null && _discoveredFish.Contains(fishData);
+    }
+
+    public bool HasDiscoveredFishName(string fishName)
+    {
+        var normalizedName = NormalizeFishName(fishName);
+        return !string.IsNullOrWhiteSpace(normalizedName) && _discoveredFishByName.ContainsKey(normalizedName);
+    }
+
+    public IReadOnlyList<FishData> GetDiscoveredFishCatalog()
+    {
+        var result = new List<FishData>(_discoveredFish.Count);
+        foreach (var fish in _discoveredFish)
+        {
+            if (fish != null && fish.FishScene != null)
+                result.Add(fish);
+        }
+
+        return result;
+    }
+
+    public IReadOnlyDictionary<string, FishData> GetDiscoveredFishByName()
+    {
+        var result = new Dictionary<string, FishData>(System.StringComparer.OrdinalIgnoreCase);
+        foreach (var pair in _discoveredFishByName)
+        {
+            if (pair.Value != null && pair.Value.FishScene != null)
+                result[pair.Key] = pair.Value;
+        }
+
+        return result;
     }
 
     public bool SpendMoney(float amount)
@@ -412,5 +466,10 @@ public partial class GameManager : Node
         var normalizedCategory = string.IsNullOrWhiteSpace(category) ? "misc" : category.Trim().ToLowerInvariant();
         var normalizedItem = string.IsNullOrWhiteSpace(itemName) ? "item" : itemName.Trim().ToLowerInvariant();
         return $"{normalizedCategory}::{normalizedItem}";
+    }
+
+    private static string NormalizeFishName(string fishName)
+    {
+        return string.IsNullOrWhiteSpace(fishName) ? string.Empty : fishName.Trim();
     }
 }

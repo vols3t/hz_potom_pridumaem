@@ -88,6 +88,7 @@ public partial class Node2d : CharacterBody2D
         Data = data;
         FishName = string.IsNullOrWhiteSpace(customFishName) ? ToRussianFishName(data.FishName) : customFishName;
         Description = data.Description;
+        GameManager.Instance?.NotifyFishDiscovered(data, FishName);
 
         if (startAsFry)
         {
