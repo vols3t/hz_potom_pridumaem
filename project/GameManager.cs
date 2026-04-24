@@ -5,7 +5,7 @@ public partial class GameManager : Node
 {
     public static GameManager Instance { get; private set; }
 
-    public float Money { get; private set; } = 300f;
+    public float Money { get; private set; } = 200f;
     public int FishCount => _fishList.Count;
     public string LastEventText { get; private set; } = "";
 
@@ -13,6 +13,7 @@ public partial class GameManager : Node
     [Export] public int CommonBirthCoins = 12;
     [Export] public int RareBirthCoins = 28;
     [Export] public int UniqueBirthCoins = 55;
+    [Export] public float PassiveIncomeMultiplier = 0.2f;
 
     [ExportCategory("Breeding")] [Export] public float BreedChanceOnContact = 0.7f;
     [Export] public float ParentBreedCooldownSec = 25f;
@@ -277,7 +278,7 @@ public partial class GameManager : Node
         foreach (var fish in _fishList)
             total += GetFishIncome(fish);
 
-        return total;
+        return total * Mathf.Max(0f, PassiveIncomeMultiplier);
     }
 
     private float GetFishIncome(Node2d fish)

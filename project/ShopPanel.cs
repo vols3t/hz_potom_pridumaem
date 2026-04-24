@@ -67,6 +67,8 @@ public partial class ShopPanel : PanelContainer
     {
         public PanelContainer Root;
         public GridContainer Grid;
+        public HBoxContainer NavigationRow;
+        public PanelContainer ComingSoonPanel;
         public Label PageLabel;
         public Button PrevButton;
         public Button NextButton;
@@ -74,6 +76,13 @@ public partial class ShopPanel : PanelContainer
     }
 
     private const int ItemsPerPage = 6;
+    private static readonly string[] RequiredShopFishPaths =
+    {
+        "res://guppyfish.tres",
+        "res://plekofish.tres",
+        "res://scalaryafish.tres",
+        "res://tetrafish.tres"
+    };
     private readonly Dictionary<ShopCategory, List<ShopEntry>> _entriesByCategory = new();
     private readonly Dictionary<ShopCategory, CategoryView> _viewsByCategory = new();
     private readonly Dictionary<ShopCategory, int> _pageByCategory = new();
@@ -96,7 +105,7 @@ public partial class ShopPanel : PanelContainer
         BuildUi();
         RefreshAll();
 
-        GameManager.Instance?.ConfigureAquarium(Aquarium, AvailableFish, SpawnAreaMin, SpawnAreaMax);
+        EnsureAquariumConfigured();
         VisibilityChanged += OnVisibilityChanged;
     }
 
@@ -156,33 +165,28 @@ public partial class ShopPanel : PanelContainer
 
     private List<ShopEntry> BuildFishCatalog()
     {
-        var validFish = GetValidFishTemplates();
+        var templates = GetShopFishTemplates();
+        var entries = new List<ShopEntry>(templates.Count);
 
-        var names = new[]
+        for (var i = 0; i < templates.Count; i++)
         {
-            "Клоун", "Неон", "Гуппи", "Скалярия", "Золотая рыбка", "Дискус",
-            "Меченосец", "Тетра", "Кардинал", "Барбус", "Моллинезия", "Петушок"
-        };
-
-        var prices = new[] { 150, 200, 180, 300, 250, 400, 170, 210, 260, 190, 220, 280 };
-        var entries = new List<ShopEntry>(names.Length);
-
-        for (var i = 0; i < names.Length; i++)
-        {
-            var template = validFish.Count > 0 ? validFish[i % validFish.Count] : null;
-            var icon = template?.Icon ?? _fallbackIcon;
-            var rarityText = template != null ? ToRarityText(template.Rarity) : "обычная";
-            var teenReward = template?.GetStageReward(FishGrowthStage.Teen) ?? 0;
-            var adultReward = template?.GetStageReward(FishGrowthStage.Adult) ?? 0;
+            var template = templates[i];
+            var teenReward = template.GetStageReward(FishGrowthStage.Teen);
+            var adultReward = template.GetStageReward(FishGrowthStage.Adult);
+            var displayName = string.IsNullOrWhiteSpace(template.FishName) ? $"\u0420\u044b\u0431\u043a\u0430 {i + 1}" : template.FishName.Trim();
+            var description = string.IsNullOrWhiteSpace(template.Description)
+                ? $"\u0420\u0435\u0434\u043a\u043e\u0441\u0442\u044c: {ToRarityText(template.Rarity)}."
+                : template.Description.Trim();
+            var price = template.Price > 0 ? template.Price : 100;
 
             entries.Add(new ShopEntry(
                 ShopCategory.Fish,
                 $"fish_{i}",
-                names[i],
-                $"Редкость: {rarityText}.",
-                prices[i],
-                icon,
-                $"Рост: подросток +{teenReward}, взрослый +{adultReward}",
+                displayName,
+                description,
+                price,
+                template.Icon ?? _fallbackIcon,
+                $"\u0420\u043e\u0441\u0442: \u043f\u043e\u0434\u0440\u043e\u0441\u0442\u043e\u043a +{teenReward}, \u0432\u0437\u0440\u043e\u0441\u043b\u044b\u0439 +{adultReward}",
                 template));
         }
 
@@ -191,96 +195,89 @@ public partial class ShopPanel : PanelContainer
 
     private List<ShopEntry> BuildFoodCatalog()
     {
-        var jarIcon = LoadIcon("res://assets/meal/meal-button.png", "res://assets/coins/coins.png");
-
-        var names = new[]
-        {
-            "Хлопья", "Гранулы", "Мотыль", "Артемия", "Дафния", "Спирулина",
-            "Микс-Про", "Витаминный корм", "Креветка", "Микропланктон", "Фито-паста", "Премиум-рацион"
-        };
-
-        var prices = new[] { 50, 75, 60, 80, 60, 70, 95, 110, 120, 85, 90, 140 };
-        var details = new[]
-        {
-            "Базовый корм на каждый день",
-            "Сбалансированный рацион для роста",
-            "Живой белковый корм",
-            "Ускоряет набор массы у мальков",
-            "Повышает активность и подвижность",
-            "Растительная поддержка иммунитета",
-            "Комбо-корм для смешанной популяции",
-            "Витамины для ускорения восстановления",
-            "Высокий процент белка",
-            "Подходит для мелкой рыбы",
-            "Добавка для яркости окраса",
-            "Максимальная питательность"
-        };
-
-        var entries = new List<ShopEntry>(names.Length);
-        for (var i = 0; i < names.Length; i++)
-        {
-            entries.Add(new ShopEntry(
-                ShopCategory.Food,
-                $"food_{i}",
-                names[i],
-                "Корм для обитателей аквариума.",
-                prices[i],
-                jarIcon ?? _fallbackIcon,
-                details[i]));
-        }
-
-        return entries;
+        return new List<ShopEntry>();
     }
 
     private List<ShopEntry> BuildDecorCatalog()
     {
-        var decorIcons = new[]
-        {
-            LoadIcon("res://assets/settings/settings-button.png"),
-            LoadIcon("res://assets/store/store-button.png"),
-            LoadIcon("res://assets/bestiary/bestiary-button.png"),
-            LoadIcon("res://assets/my-fishes-button.png")
-        };
-
-        var names = new[]
-        {
-            "Замок", "Коряга", "Амфора", "Растения (выс.)", "Растения (сред.)", "Камни",
-            "Коралловый риф", "Грот", "Мини-руины", "Мостик", "Жемчужная раковина", "Каменная арка"
-        };
-
-        var prices = new[] { 500, 300, 250, 150, 100, 120, 420, 280, 240, 260, 340, 390 };
-        var details = new[]
-        {
-            "Эпичный акцент для центра аквариума",
-            "Натуральное укрытие для рыб",
-            "Классический античный декор",
-            "Высокие растения для фона",
-            "Средние кусты для середины сцены",
-            "Каменная группа для дна",
-            "Яркая рифовая композиция",
-            "Укрытие в форме пещеры",
-            "Старинный стиль для дизайна",
-            "Добавляет глубину композиции",
-            "Редкая декоративная деталь",
-            "Большой архитектурный элемент"
-        };
-
-        var entries = new List<ShopEntry>(names.Length);
-        for (var i = 0; i < names.Length; i++)
-        {
-            entries.Add(new ShopEntry(
-                ShopCategory.Decor,
-                $"decor_{i}",
-                names[i],
-                "Декорация для оформления аквариума.",
-                prices[i],
-                decorIcons[i % decorIcons.Length] ?? _fallbackIcon,
-                details[i]));
-        }
-
-        return entries;
+        return new List<ShopEntry>();
     }
 
+    private List<FishData> GetShopFishTemplates()
+    {
+        var result = GetValidFishTemplates();
+
+        foreach (var path in RequiredShopFishPaths)
+        {
+            var fish = GD.Load<FishData>(path);
+            if (fish == null || fish.FishScene == null)
+                continue;
+
+            if (!ContainsFishTemplate(result, fish))
+                result.Add(fish);
+        }
+
+        if (result.Count == 0)
+            result = GetFallbackFishTemplates();
+
+        result.Sort(CompareFishTemplates);
+        return result;
+    }
+
+    private static bool ContainsFishTemplate(List<FishData> collection, FishData candidate)
+    {
+        if (collection == null || candidate == null)
+            return false;
+
+        var candidateSpecies = NormalizeFishKey(candidate.SpeciesId);
+        var candidateName = NormalizeFishKey(candidate.FishName);
+        var candidatePath = NormalizeFishKey(candidate.ResourcePath);
+
+        foreach (var fish in collection)
+        {
+            if (fish == null)
+                continue;
+
+            if (!string.IsNullOrWhiteSpace(candidatePath) && NormalizeFishKey(fish.ResourcePath) == candidatePath)
+                return true;
+            if (!string.IsNullOrWhiteSpace(candidateSpecies) && NormalizeFishKey(fish.SpeciesId) == candidateSpecies)
+                return true;
+            if (!string.IsNullOrWhiteSpace(candidateName) && NormalizeFishKey(fish.FishName) == candidateName)
+                return true;
+        }
+
+        return false;
+    }
+
+    private static int CompareFishTemplates(FishData left, FishData right)
+    {
+        var leftPriority = GetFishPriority(left);
+        var rightPriority = GetFishPriority(right);
+        if (leftPriority != rightPriority)
+            return leftPriority.CompareTo(rightPriority);
+
+        var leftName = left?.FishName ?? string.Empty;
+        var rightName = right?.FishName ?? string.Empty;
+        return string.Compare(leftName, rightName, StringComparison.CurrentCultureIgnoreCase);
+    }
+
+    private static int GetFishPriority(FishData fish)
+    {
+        var species = NormalizeFishKey(fish?.SpeciesId);
+        return species switch
+        {
+            "guppy" => 0,
+            "pleko" => 1,
+            "scalarya" => 2,
+            "tetra" => 3,
+            _ => 10
+        };
+    }
+
+    private static string NormalizeFishKey(string value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim().ToLowerInvariant();
+    }
     private List<FishData> GetValidFishTemplates()
     {
         var result = new List<FishData>();
@@ -300,10 +297,10 @@ public partial class ShopPanel : PanelContainer
     {
         return rarity switch
         {
-            FishRarity.Common => "обычная",
-            FishRarity.Rare => "редкая",
-            FishRarity.Unique => "уникальная",
-            _ => "обычная"
+            FishRarity.Common => "\u043e\u0431\u044b\u0447\u043d\u0430\u044f",
+            FishRarity.Rare => "\u0440\u0435\u0434\u043a\u0430\u044f",
+            FishRarity.Unique => "\u0443\u043d\u0438\u043a\u0430\u043b\u044c\u043d\u0430\u044f",
+            _ => "\u043e\u0431\u044b\u0447\u043d\u0430\u044f"
         };
     }
 
@@ -371,7 +368,7 @@ public partial class ShopPanel : PanelContainer
 
         var coinsTitle = new Label
         {
-            Text = "Монеты:",
+            Text = "\u041c\u043e\u043d\u0435\u0442\u044b:",
             VerticalAlignment = VerticalAlignment.Center
         };
         coinsTitle.AddThemeColorOverride("font_color", new Color("f5f0da"));
@@ -391,7 +388,7 @@ public partial class ShopPanel : PanelContainer
 
         var title = new Label
         {
-            Text = "магазин",
+            Text = "\u043c\u0430\u0433\u0430\u0437\u0438\u043d",
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
             SizeFlagsHorizontal = SizeFlags.ExpandFill
@@ -403,7 +400,7 @@ public partial class ShopPanel : PanelContainer
         var closeButton = new Button
         {
             Text = "X",
-            TooltipText = "Закрыть магазин (Esc)",
+            TooltipText = "\u0417\u0430\u043a\u0440\u044b\u0442\u044c \u043c\u0430\u0433\u0430\u0437\u0438\u043d (Esc)",
             CustomMinimumSize = new Vector2(44, 40),
             FocusMode = FocusModeEnum.None
         };
@@ -417,14 +414,13 @@ public partial class ShopPanel : PanelContainer
 
         _statusLabel = new Label
         {
-            Text = "Откройте нужную категорию и выберите товар",
+            Text = "\u041e\u0442\u043a\u0440\u043e\u0439\u0442\u0435 \u043d\u0443\u0436\u043d\u0443\u044e \u043a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u044e \u0438 \u0432\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0442\u043e\u0432\u0430\u0440",
             HorizontalAlignment = HorizontalAlignment.Center
         };
         _statusLabel.AddThemeColorOverride("font_color", new Color("8fb4d8"));
         _statusLabel.AddThemeFontSizeOverride("font_size", 18);
         parent.AddChild(_statusLabel);
     }
-
     private void BuildCategoryArea(VBoxContainer parent)
     {
         var panel = new PanelContainer
@@ -452,9 +448,9 @@ public partial class ShopPanel : PanelContainer
         topTabsRow.AddThemeConstantOverride("separation", 8);
         content.AddChild(topTabsRow);
 
-        CreateTopTab(topTabsRow, ShopCategory.Fish, "рыбки");
-        CreateTopTab(topTabsRow, ShopCategory.Food, "еда");
-        CreateTopTab(topTabsRow, ShopCategory.Decor, "декорации");
+        CreateTopTab(topTabsRow, ShopCategory.Fish, "\u0440\u044b\u0431\u043a\u0438");
+        CreateTopTab(topTabsRow, ShopCategory.Food, "\u0435\u0434\u0430");
+        CreateTopTab(topTabsRow, ShopCategory.Decor, "\u0434\u0435\u043a\u043e\u0440\u0430\u0446\u0438\u0438");
 
         _categoryTabs = new TabContainer
         {
@@ -464,9 +460,9 @@ public partial class ShopPanel : PanelContainer
         };
         content.AddChild(_categoryTabs);
 
-        BuildCategoryView(_categoryTabs, ShopCategory.Fish, "рыбки");
-        BuildCategoryView(_categoryTabs, ShopCategory.Food, "еда");
-        BuildCategoryView(_categoryTabs, ShopCategory.Decor, "декорации");
+        BuildCategoryView(_categoryTabs, ShopCategory.Fish, "\u0440\u044b\u0431\u043a\u0438");
+        BuildCategoryView(_categoryTabs, ShopCategory.Food, "\u0435\u0434\u0430");
+        BuildCategoryView(_categoryTabs, ShopCategory.Decor, "\u0434\u0435\u043a\u043e\u0440\u0430\u0446\u0438\u0438");
     }
 
     private void CreateTopTab(HBoxContainer parent, ShopCategory category, string text)
@@ -571,6 +567,9 @@ public partial class ShopPanel : PanelContainer
         navRow.AddChild(page);
         navRow.AddChild(next);
 
+        var comingSoonPanel = BuildComingSoonPanel(category);
+        content.AddChild(comingSoonPanel);
+
         var summary = new Label
         {
             HorizontalAlignment = HorizontalAlignment.Center
@@ -583,6 +582,8 @@ public partial class ShopPanel : PanelContainer
         {
             Root = root,
             Grid = grid,
+            NavigationRow = navRow,
+            ComingSoonPanel = comingSoonPanel,
             PageLabel = page,
             PrevButton = prev,
             NextButton = next,
@@ -590,6 +591,70 @@ public partial class ShopPanel : PanelContainer
         };
     }
 
+    private PanelContainer BuildComingSoonPanel(ShopCategory category)
+    {
+        var panel = new PanelContainer
+        {
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+            Visible = false,
+            MouseFilter = MouseFilterEnum.Ignore
+        };
+        panel.AddThemeStyleboxOverride("panel", BuildPanelStyle(new Color("1a3856"), new Color("4b79a8"), 2, 10));
+
+        var margin = new MarginContainer();
+        margin.AddThemeConstantOverride("margin_left", 16);
+        margin.AddThemeConstantOverride("margin_top", 16);
+        margin.AddThemeConstantOverride("margin_right", 16);
+        margin.AddThemeConstantOverride("margin_bottom", 16);
+        panel.AddChild(margin);
+
+        var center = new CenterContainer
+        {
+            SizeFlagsVertical = SizeFlags.ExpandFill
+        };
+        margin.AddChild(center);
+
+        var content = new VBoxContainer();
+        content.AddThemeConstantOverride("separation", 10);
+        center.AddChild(content);
+
+        var comingSoon = new Label
+        {
+            Text = "COMING SOON",
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+        comingSoon.AddThemeColorOverride("font_color", new Color("f8d976"));
+        comingSoon.AddThemeFontSizeOverride("font_size", 48);
+        content.AddChild(comingSoon);
+
+        var subtitle = new Label
+        {
+            Text = category == ShopCategory.Food
+                ? "\u0420\u0430\u0437\u0434\u0435\u043b \u00ab\u0435\u0434\u0430\u00bb \u0432 \u0440\u0430\u0437\u0440\u0430\u0431\u043e\u0442\u043a\u0435"
+                : "\u0420\u0430\u0437\u0434\u0435\u043b \u00ab\u0434\u0435\u043a\u043e\u0440\u0430\u0446\u0438\u0438\u00bb \u0432 \u0440\u0430\u0437\u0440\u0430\u0431\u043e\u0442\u043a\u0435",
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+        subtitle.AddThemeColorOverride("font_color", new Color("d7e7ff"));
+        subtitle.AddThemeFontSizeOverride("font_size", 24);
+        content.AddChild(subtitle);
+
+        var details = new Label
+        {
+            Text = "\u0421\u043a\u043e\u0440\u043e \u0437\u0434\u0435\u0441\u044c \u043f\u043e\u044f\u0432\u044f\u0442\u0441\u044f \u043d\u043e\u0432\u044b\u0435 \u0442\u043e\u0432\u0430\u0440\u044b \u0438 \u0443\u043b\u0443\u0447\u0448\u0435\u043d\u0438\u044f.",
+            HorizontalAlignment = HorizontalAlignment.Center,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart
+        };
+        details.AddThemeColorOverride("font_color", new Color("96b9df"));
+        details.AddThemeFontSizeOverride("font_size", 18);
+        content.AddChild(details);
+
+        return panel;
+    }
+
+    private static bool IsComingSoonCategory(ShopCategory category)
+    {
+        return category == ShopCategory.Food || category == ShopCategory.Decor;
+    }
     private void SetActiveCategory(ShopCategory category)
     {
         _activeCategory = category;
@@ -655,9 +720,34 @@ public partial class ShopPanel : PanelContainer
         if (!IsInsideTree())
             return;
 
+        EnsureAquariumConfigured();
         Visible = true;
         MoveToFront();
         RefreshAll();
+    }
+
+    private bool EnsureAquariumConfigured()
+    {
+        var gm = GameManager.Instance;
+        if (gm == null)
+            return false;
+
+        var aquariumNode = Aquarium;
+        if (aquariumNode == null)
+            aquariumNode = GetTree()?.CurrentScene as Node2D;
+        if (aquariumNode == null)
+            aquariumNode = GetNodeOrNull<Node2D>("../../..");
+        if (aquariumNode == null)
+            return false;
+
+        Aquarium = aquariumNode;
+
+        var catalog = AvailableFish;
+        if (catalog == null || catalog.Length == 0)
+            catalog = GetShopFishTemplates().ToArray();
+
+        gm.ConfigureAquarium(aquariumNode, catalog, SpawnAreaMin, SpawnAreaMax);
+        return true;
     }
 
     private void RefreshAll()
@@ -714,6 +804,32 @@ public partial class ShopPanel : PanelContainer
         if (!_entriesByCategory.TryGetValue(category, out var entries))
             return;
 
+        if (IsComingSoonCategory(category))
+        {
+            foreach (var child in view.Grid.GetChildren())
+                child.QueueFree();
+
+            view.Grid.Visible = false;
+            if (view.NavigationRow != null)
+                view.NavigationRow.Visible = false;
+            if (view.ComingSoonPanel != null)
+                view.ComingSoonPanel.Visible = true;
+
+            view.PageLabel.Text = string.Empty;
+            view.PrevButton.Disabled = true;
+            view.NextButton.Disabled = true;
+            view.SummaryLabel.Text = category == ShopCategory.Food
+                ? "\u0420\u0430\u0437\u0434\u0435\u043b \u00ab\u0435\u0434\u0430\u00bb \u043e\u0442\u043a\u0440\u043e\u0435\u0442\u0441\u044f \u0432 \u0431\u043b\u0438\u0436\u0430\u0439\u0448\u0435\u043c \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0438"
+                : "\u0420\u0430\u0437\u0434\u0435\u043b \u00ab\u0434\u0435\u043a\u043e\u0440\u0430\u0446\u0438\u0438\u00bb \u043e\u0442\u043a\u0440\u043e\u0435\u0442\u0441\u044f \u0432 \u0431\u043b\u0438\u0436\u0430\u0439\u0448\u0435\u043c \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0438";
+            return;
+        }
+
+        view.Grid.Visible = true;
+        if (view.NavigationRow != null)
+            view.NavigationRow.Visible = true;
+        if (view.ComingSoonPanel != null)
+            view.ComingSoonPanel.Visible = false;
+
         var currentPage = _pageByCategory.TryGetValue(category, out var page) ? page : 0;
         var pageCount = Math.Max(1, Mathf.CeilToInt(entries.Count / (float)ItemsPerPage));
         currentPage = Mathf.Clamp(currentPage, 0, pageCount - 1);
@@ -741,15 +857,8 @@ public partial class ShopPanel : PanelContainer
         view.PrevButton.Disabled = currentPage <= 0;
         view.NextButton.Disabled = currentPage >= pageCount - 1;
 
-        view.SummaryLabel.Text = category switch
-        {
-            ShopCategory.Fish => "Покупка: рыба сразу появляется в аквариуме",
-            ShopCategory.Food => $"Куплено корма: {GameManager.Instance?.GetOwnedCategoryCount("food") ?? 0}",
-            ShopCategory.Decor => $"Куплено декора: {GameManager.Instance?.GetOwnedCategoryCount("decor") ?? 0}",
-            _ => string.Empty
-        };
+        view.SummaryLabel.Text = "\u041f\u043e\u043a\u0443\u043f\u043a\u0430: \u0440\u044b\u0431\u0430 \u0441\u0440\u0430\u0437\u0443 \u043f\u043e\u044f\u0432\u043b\u044f\u0435\u0442\u0441\u044f \u0432 \u0430\u043a\u0432\u0430\u0440\u0438\u0443\u043c\u0435";
     }
-
     private Control CreateCard(ShopEntry entry)
     {
         var card = new PanelContainer
@@ -820,7 +929,7 @@ public partial class ShopPanel : PanelContainer
 
         var buyButton = new Button
         {
-            Text = "купить",
+            Text = "\u043a\u0443\u043f\u0438\u0442\u044c",
             CustomMinimumSize = new Vector2(0, 28)
         };
         buyButton.AddThemeStyleboxOverride("normal", BuildButtonStyle(new Color("4d833f"), new Color("8eb16a"), 2, 8));
@@ -836,9 +945,9 @@ public partial class ShopPanel : PanelContainer
         var hasFishSlots = entry.Category != ShopCategory.Fish || (gm != null && gm.FishCount < gm.MaxFishCount);
         buyButton.Disabled = !canAfford || !validFishOffer || !hasFishSlots;
         if (!hasFishSlots)
-            buyButton.Text = "лимит";
+            buyButton.Text = "\u043b\u0438\u043c\u0438\u0442";
         else if (!canAfford)
-            buyButton.Text = "дорого";
+            buyButton.Text = "\u0434\u043e\u0440\u043e\u0433\u043e";
 
         buyButton.Pressed += () => TryBuyEntry(entry);
         content.AddChild(buyButton);
@@ -848,7 +957,7 @@ public partial class ShopPanel : PanelContainer
             var ownedCount = GameManager.Instance?.GetOwnedShopItemCount(ToStorageCategory(entry.Category), entry.Name) ?? 0;
             var ownedLabel = new Label
             {
-                Text = $"в наличии: {ownedCount}",
+                Text = $"\u0432 \u043d\u0430\u043b\u0438\u0447\u0438\u0438: {ownedCount}",
                 HorizontalAlignment = HorizontalAlignment.Center
             };
             ownedLabel.AddThemeColorOverride("font_color", new Color("8bb0d0"));
@@ -868,10 +977,16 @@ public partial class ShopPanel : PanelContainer
         bool purchased;
         if (entry.Category == ShopCategory.Fish)
         {
+            if (!EnsureAquariumConfigured())
+            {
+                _statusLabel.Text = "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043f\u043e\u0434\u0433\u043e\u0442\u043e\u0432\u0438\u0442\u044c \u0430\u043a\u0432\u0430\u0440\u0438\u0443\u043c \u0434\u043b\u044f \u043f\u043e\u043a\u0443\u043f\u043a\u0438";
+                return;
+            }
+
             var fishTemplate = ResolveFishTemplate(entry);
             if (fishTemplate == null)
             {
-                _statusLabel.Text = "Нельзя купить эту рыбу: отсутствует шаблон спавна";
+                _statusLabel.Text = "\u041d\u0435\u043b\u044c\u0437\u044f \u043a\u0443\u043f\u0438\u0442\u044c \u044d\u0442\u0443 \u0440\u044b\u0431\u0443: \u043e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442 \u0448\u0430\u0431\u043b\u043e\u043d \u0441\u043f\u0430\u0432\u043d\u0430";
                 return;
             }
 
@@ -884,13 +999,14 @@ public partial class ShopPanel : PanelContainer
 
         if (!purchased)
         {
-            _statusLabel.Text = $"Недостаточно монет для покупки: {entry.Name}";
+            _statusLabel.Text = !string.IsNullOrWhiteSpace(gm.LastEventText)
+                ? gm.LastEventText
+                : $"\u041d\u0435\u0434\u043e\u0441\u0442\u0430\u0442\u043e\u0447\u043d\u043e \u043c\u043e\u043d\u0435\u0442 \u0434\u043b\u044f \u043f\u043e\u043a\u0443\u043f\u043a\u0438: {entry.Name}";
             return;
         }
 
         RefreshAll();
     }
-
     private FishData ResolveFishTemplate(ShopEntry entry)
     {
         if (entry?.Category != ShopCategory.Fish)
@@ -917,6 +1033,10 @@ public partial class ShopPanel : PanelContainer
         var result = new List<FishData>();
         var fallbackPaths = new[]
         {
+            "res://guppyfish.tres",
+            "res://plekofish.tres",
+            "res://scalaryafish.tres",
+            "res://tetrafish.tres",
             "res://goldfish.tres",
             "res://neonfish.tres",
             "res://uniquefish.tres"
