@@ -30,6 +30,9 @@ public partial class Hud : Control
     private global::SettingsPanel _settingsPanelScript;
 
     private Node2d _lastClickedFish;
+    private float _previousMoney;
+    private bool _hasMoneySnapshot;
+    private float _smoothedNetFlowPerSec;
 
     public override void _Ready()
     {
@@ -54,6 +57,21 @@ public partial class Hud : Control
         _settingsPanelScript = SettingsPanel as global::SettingsPanel;
         if (_settingsPanelScript != null)
             _settingsPanelScript.PanelClosed += OnSettingsClosed;
+
+        if (IncomeLabel != null)
+        {
+            IncomeLabel.CustomMinimumSize = new Vector2(340f, IncomeLabel.CustomMinimumSize.Y);
+            IncomeLabel.HorizontalAlignment = HorizontalAlignment.Left;
+            IncomeLabel.SizeFlagsHorizontal = Control.SizeFlags.Fill;
+        }
+
+        var gm = GameManager.Instance;
+        if (gm != null)
+        {
+            _previousMoney = gm.Money;
+            _hasMoneySnapshot = true;
+            _smoothedNetFlowPerSec = 0f;
+        }
     }
 
     public override void _Process(double delta)
@@ -62,6 +80,17 @@ public partial class Hud : Control
         if (gm == null)
             return;
 
+        var dt = Mathf.Max((float)delta, 0.0001f);
+        if (!_hasMoneySnapshot)
+        {
+            _previousMoney = gm.Money;
+            _hasMoneySnapshot = true;
+        }
+
+        var netFlowPerSec = (gm.Money - _previousMoney) / dt;
+        _smoothedNetFlowPerSec = Mathf.Lerp(_smoothedNetFlowPerSec, netFlowPerSec, 0.2f);
+        _previousMoney = gm.Money;
+
         if (CoinsDisplay != null)
             CoinsDisplay.SetAmount(Mathf.RoundToInt(gm.Money));
         else if (MoneyLabel != null)
@@ -69,8 +98,7 @@ public partial class Hud : Control
 
         if (IncomeLabel != null)
         {
-            var fallbackIncome = $"+{gm.GetIncomePerSecond():F1}/sec";
-            IncomeLabel.Text = string.IsNullOrWhiteSpace(gm.LastEventText) ? fallbackIncome : gm.LastEventText;
+            IncomeLabel.Text = $"balance: {FormatSigned(_smoothedNetFlowPerSec)}";
         }
 
         if (FishCountDisplay != null)
@@ -86,6 +114,13 @@ public partial class Hud : Control
 
         if (UniqueCountLabel != null)
             UniqueCountLabel.Text = $"Unique: {gm.GetFishCountByRarity(FishRarity.Unique)}";
+    }
+
+    private static string FormatSigned(float value)
+    {
+        var clamped = Mathf.Clamp(value, -999.9f, 999.9f);
+        var sign = clamped >= 0f ? "+" : "-";
+        return $"{sign}{Mathf.Abs(clamped):0.0}/sec";
     }
 
     public override void _UnhandledInput(InputEvent @event)

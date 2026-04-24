@@ -194,24 +194,23 @@ public partial class Node2d : CharacterBody2D
     public static string ToRussianFishName(string fishName)
     {
         if (string.IsNullOrWhiteSpace(fishName))
-            return "Рыбка";
+            return "Р С‹Р±РєР°";
 
         return fishName.Trim().ToLowerInvariant() switch
         {
-            "goldfish" => "Золотая рыбка",
-            "neon" => "Неон",
-            "neon tetra" => "Неон",
-            "clownfish" => "Клоун",
-            "guppy" => "Гуппи",
-            "angelfish" => "Скалярия",
-            "discus" => "Дискус",
-            "swordtail" => "Меченосец",
-            "tetra" => "Тетра",
-            "cardinal" => "Кардинал",
-            "barb" => "Барбус",
-            "molly" => "Моллинезия",
-            "betta" => "Петушок",
-            "phoenix koi" => "Феникс кои",
+            "goldfish" => "Р—РѕР»РѕС‚Р°СЏ СЂС‹Р±РєР°",
+            "neon" => "РќРµРѕРЅ",
+            "neon tetra" => "РќРµРѕРЅ",
+            "clownfish" => "РљР»РѕСѓРЅ",
+            "guppy" => "Р“СѓРїРїРё",
+            "angelfish" => "РЎРєР°Р»СЏСЂРёСЏ",
+            "discus" => "Р”РёСЃРєСѓСЃ",
+            "swordtail" => "РњРµС‡РµРЅРѕСЃРµС†",
+            "tetra" => "РўРµС‚СЂР°",
+            "cardinal" => "РљР°СЂРґРёРЅР°Р»",
+            "barb" => "Р‘Р°СЂР±СѓСЃ",
+            "molly" => "РњРѕР»Р»РёРЅРµР·РёСЏ",
+            "betta" => "РџРµС‚СѓС€РѕРє",
             _ => fishName
         };
     }
@@ -220,11 +219,11 @@ public partial class Node2d : CharacterBody2D
     {
         Data = momData;
         FishName = $"{momData.FishName}-{dadData.FishName}";
-        Description = $"Гибрид {momData.FishName} и {dadData.FishName}";
+        Description = $"Р“РёР±СЂРёРґ {momData.FishName} Рё {dadData.FishName}";
 
-        // Смешиваем скорость
+        // РЎРјРµС€РёРІР°РµРј СЃРєРѕСЂРѕСЃС‚СЊ
         Speed = momData.IncomePerSec + dadData.IncomePerSec > 0
-            ? Speed // Оставляем дефолт
+            ? Speed // РћСЃС‚Р°РІР»СЏРµРј РґРµС„РѕР»С‚
             : Speed;
 
         ParentA = momData;
