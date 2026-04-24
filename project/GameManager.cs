@@ -14,11 +14,11 @@ public partial class GameManager : Node
     [Export] public int RareBirthCoins = 28;
     [Export] public int UniqueBirthCoins = 55;
 
-    [ExportCategory("Breeding")] [Export] public float BreedChanceOnContact = 0.45f;
+    [ExportCategory("Breeding")] [Export] public float BreedChanceOnContact = 0.7f;
     [Export] public float ParentBreedCooldownSec = 25f;
     [Export] public float MeetingCheckIntervalSec = 0.5f;
     [Export] public float MeetingDistance = 100f;
-    [Export] public float HybridChance = 0.3f;
+    [Export] public float HybridChance = 0.33f;
 
     [ExportCategory("Mutations")] [Export] public float MutationCheckInterval = 2.0f;
 
@@ -285,7 +285,11 @@ public partial class GameManager : Node
         if (fish?.Data == null)
             return 0f;
 
-        var income = fish.Data.IncomePerSec;
+        var baseIncome = fish.HybridIncome > 0
+            ? fish.HybridIncome
+            : fish.Data.IncomePerSec;
+
+        var income = baseIncome;
 
         income *= fish.Data.GetRarityMultiplier();
 
@@ -485,6 +489,10 @@ public partial class GameManager : Node
     private bool CanBreed(Node2d fish)
     {
         if (fish?.Data == null || !fish.IsAdult)
+            return false;
+
+
+        if (fish.IsHybrid)
             return false;
 
         var nextTime = _nextBreedAtSec.TryGetValue(fish, out var v) ? v : 0f;

@@ -1,14 +1,13 @@
 [gd_scene format=3 uid="uid://uxyui01ie1go"]
 
 [ext_resource type="PackedScene" uid="uid://bgiqlv2kr3ftq" path="res://node_2d.tscn" id="1_qnukr"]
-[ext_resource type="Texture2D" uid="uid://8d1qu1iw52ox" path="res://assets/fishes/medium/clown-fish-medium.png" id="1_vgbo8"]
 [ext_resource type="Script" uid="uid://brpiaigkw02tp" path="res://Hud.cs" id="3_ojo41"]
 [ext_resource type="Script" uid="uid://2u6f6w33m2yr" path="res://ShopPanel.cs" id="4_5kyaj"]
 [ext_resource type="PackedScene" uid="uid://c74odbuwg5u0n" path="res://shop_item.tscn" id="5_6hkmb"]
-[ext_resource type="Resource" uid="uid://5cpvr4706vct" path="res://angelfish.tres" id="5_8yxfx"]
-[ext_resource type="Resource" path="res://goldfish.tres" id="6_3tg85"]
-[ext_resource type="Resource" path="res://neonfish.tres" id="7_1r8n5"]
-[ext_resource type="Resource" path="res://uniquefish.tres" id="8_4xpxf"]
+[ext_resource type="Resource" uid="uid://5cpvr4706vct" path="res://guppyfish.tres" id="5_8yxfx"]
+[ext_resource type="Resource" uid="uid://ct5slvvoduelg" path="res://scalaryafish.tres" id="5_rr01v"]
+[ext_resource type="Resource" uid="uid://7ghd0reqtax" path="res://tetrafish.tres" id="6_3tg85"]
+[ext_resource type="Resource" uid="uid://bd0r2tbnlyk5" path="res://plekofish.tres" id="7_1r8n5"]
 [ext_resource type="Texture2D" uid="uid://b2lxdki86em3g" path="res://assets/aquarium.png" id="9_u4mj4"]
 [ext_resource type="Texture2D" uid="uid://hvplmapx3mk3" path="res://assets/store/store-button.png" id="10_gxrfh"]
 [ext_resource type="Texture2D" uid="uid://27rxv26ryijx" path="res://assets/bestiary/bestiary-button.png" id="11_dv6mb"]
@@ -19,11 +18,13 @@
 [ext_resource type="Texture2D" uid="uid://bxknin0vampj5" path="res://assets/coins/coins.png" id="16_t0uma"]
 [ext_resource type="Texture2D" uid="uid://hw7ukhffro40" path="res://assets/fish-counts.png" id="17_vqk9c"]
 [ext_resource type="Script" uid="uid://ch3yjx5l8s2h1" path="res://MyFishPanel.cs" id="18_2h1my"]
+[ext_resource type="Script" uid="uid://colku0fklb2ii" path="res://FishData.cs" id="18_hc17k"]
 [ext_resource type="Script" uid="uid://ckqx4866jad2" path="res://BestiaryPanel.cs" id="19_q3lws"]
 [ext_resource type="Script" uid="uid://d0xop5rc0ru86" path="res://SettingsPanel.cs" id="20_a5k0d"]
 [ext_resource type="Script" uid="uid://mkmcpbm1flj2" path="res://FoodDropper.cs" id="21_huqxr"]
 [ext_resource type="PackedScene" uid="uid://bahmfwssft60l" path="res://assets/meal/fish_info_panel.tscn" id="22_yn4mw"]
 [ext_resource type="PackedScene" uid="uid://b2lxntg248lln" path="res://assets/mutations/food_particle.tscn" id="23_yn4mw"]
+[ext_resource type="Script" uid="uid://c166pba84s66c" path="res://HybridRegistry.cs" id="24_iupcg"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_vgbo8"]
 size = Vector2(1353, 10)
@@ -36,6 +37,19 @@ size = Vector2(1353, 10)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_thxjk"]
 size = Vector2(10, 545)
+
+[sub_resource type="Resource" id="Resource_mb68e"]
+script = ExtResource("18_hc17k")
+FishName = "Phoenix Koi"
+Description = "Unique high-value fish"
+Price = 180
+Rarity = 2
+FryDurationSec = 25.0
+TeenDurationSec = 34.0
+TeenStageCoins = 13
+AdultStageCoins = 24
+BreedWeight = 0.35
+FishScene = ExtResource("1_qnukr")
 
 [node name="Aquarium" type="Node2D" unique_id=1470860604]
 
@@ -52,7 +66,6 @@ shape = SubResource("RectangleShape2D_vgbo8")
 
 [node name="Sprite2D" type="Sprite2D" parent="top" unique_id=1640571954]
 visible = false
-texture = ExtResource("1_vgbo8")
 
 [node name="right" type="StaticBody2D" parent="." unique_id=1982523293]
 position = Vector2(1395, 367.5)
@@ -62,7 +75,6 @@ shape = SubResource("RectangleShape2D_qnukr")
 
 [node name="Sprite2D" type="Sprite2D" parent="right" unique_id=409950794]
 visible = false
-texture = ExtResource("1_vgbo8")
 
 [node name="bottom" type="StaticBody2D" parent="." unique_id=266904037]
 position = Vector2(718.5, 640)
@@ -72,7 +84,6 @@ shape = SubResource("RectangleShape2D_ojo41")
 
 [node name="Sprite2D" type="Sprite2D" parent="bottom" unique_id=144333941]
 visible = false
-texture = ExtResource("1_vgbo8")
 
 [node name="left" type="StaticBody2D" parent="." unique_id=1868568441]
 position = Vector2(42, 367.5)
@@ -82,19 +93,22 @@ shape = SubResource("RectangleShape2D_thxjk")
 
 [node name="Sprite2D" type="Sprite2D" parent="left" unique_id=571205620]
 visible = false
-texture = ExtResource("1_vgbo8")
 
-[node name="fish" parent="." unique_id=574454736 instance=ExtResource("1_qnukr")]
-position = Vector2(720, 430)
+[node name="guppy" parent="." unique_id=273007973 instance=ExtResource("1_qnukr")]
+position = Vector2(900, 420)
+InitialFishData = ExtResource("5_8yxfx")
+
+[node name="tetra" parent="." unique_id=574454736 instance=ExtResource("1_qnukr")]
+position = Vector2(445, 323)
 InitialFishData = ExtResource("6_3tg85")
 
-[node name="fish2" parent="." unique_id=273007973 instance=ExtResource("1_qnukr")]
-position = Vector2(900, 420)
-InitialFishData = ExtResource("7_1r8n5")
+[node name="scalarya" parent="." unique_id=2066179579 instance=ExtResource("1_qnukr")]
+position = Vector2(573, 447)
+InitialFishData = ExtResource("5_rr01v")
 
-[node name="fish3" parent="." unique_id=1327035935 instance=ExtResource("1_qnukr")]
-position = Vector2(900, 539)
-InitialFishData = ExtResource("5_8yxfx")
+[node name="pleko" parent="." unique_id=360519559 instance=ExtResource("1_qnukr")]
+position = Vector2(616, 250)
+InitialFishData = ExtResource("7_1r8n5")
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=865599142]
 
@@ -324,7 +338,7 @@ offset_bottom = -8.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("19_q3lws")
-CatalogFish = Array[Object]([ExtResource("6_3tg85"), ExtResource("7_1r8n5"), ExtResource("5_8yxfx"), ExtResource("8_4xpxf")])
+CatalogFish = Array[Object]([ExtResource("6_3tg85"), ExtResource("7_1r8n5"), ExtResource("5_8yxfx"), SubResource("Resource_mb68e")])
 
 [node name="SettingsPanel" type="PanelContainer" parent="UI/HUD" unique_id=197521833]
 visible = false
@@ -348,7 +362,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("4_5kyaj")
 ShopItemScene = ExtResource("5_6hkmb")
-AvailableFish = Array[Object]([ExtResource("6_3tg85"), ExtResource("7_1r8n5"), ExtResource("5_8yxfx"), ExtResource("8_4xpxf")])
+AvailableFish = Array[Object]([ExtResource("6_3tg85"), ExtResource("7_1r8n5"), ExtResource("5_8yxfx"), SubResource("Resource_mb68e")])
 ItemList = NodePath("MarginContainer/VBoxContainer/ScrollContainer/ItemList")
 FishTabBtn = NodePath("MarginContainer/VBoxContainer/HBoxContainer/FishTabBtn")
 FoodTabBtn = NodePath("MarginContainer/VBoxContainer/HBoxContainer/FoodTabBtn")
@@ -426,3 +440,6 @@ AquariumLeft = 42.0
 AquariumRight = 1395.0
 AquariumTop = 95.0
 AquariumBottom = 640.0
+
+[node name="HybridRegistry" type="Node" parent="." unique_id=1820603685]
+script = ExtResource("24_iupcg")

@@ -25,6 +25,10 @@ public partial class Node2d : CharacterBody2D
     private bool _isSeekingFood = false;
     private float _satiation = 0f;
     private float _eatCooldownTimer = 0f;
+    private bool _isHybrid = false;
+    public bool IsHybrid => _isHybrid;
+    private float _hybridIncome = 0f;
+    public float HybridIncome => _hybridIncome;
     public FishData Data { get; private set; }
     public FishGrowthStage CurrentStage { get; private set; } = FishGrowthStage.Fry;
     public float AgeSec { get; private set; } = 0f;
@@ -109,7 +113,14 @@ public partial class Node2d : CharacterBody2D
 
         if (Data != null)
         {
-            ApplyBodyParts(Data);
+            if (_isHybrid)
+            {
+                if (ParentA != null && ParentB != null)
+                    ApplyHybridBodyParts(ParentA, ParentB);
+            }
+            else
+                ApplyBodyParts(Data);
+
             UpdateStageScale();
         }
         else if (InitialFishData != null) SetupFromData(InitialFishData, true);
@@ -209,10 +220,17 @@ public partial class Node2d : CharacterBody2D
     {
         Data = momData;
         FishName = $"{momData.FishName}-{dadData.FishName}";
-        Description = $"Hybrid of {momData.FishName} and {dadData.FishName}";
+        Description = $"Гибрид {momData.FishName} и {dadData.FishName}";
+
+        // Смешиваем скорость
+        Speed = momData.IncomePerSec + dadData.IncomePerSec > 0
+            ? Speed // Оставляем дефолт
+            : Speed;
 
         ParentA = momData;
         ParentB = dadData;
+        _isHybrid = true;
+        _hybridIncome = (momData.IncomePerSec + dadData.IncomePerSec) * 0.5f;
 
         ApplyHybridBodyParts(momData, dadData);
 
@@ -264,25 +282,52 @@ public partial class Node2d : CharacterBody2D
 
     private void ApplyHybridBodyParts(FishData mom, FishData dad)
     {
-        if (_bodySprite != null)
-            _bodySprite.Texture = mom.BodyTexture ?? dad.BodyTexture;
+        Texture2D hybridTexture = null;
 
-        if (_eyesSprite != null)
+        if (HybridRegistry.Instance != null
+            && !string.IsNullOrEmpty(mom.SpeciesId)
+            && !string.IsNullOrEmpty(dad.SpeciesId))
         {
-            _eyesSprite.Texture = mom.EyesTexture ?? dad.EyesTexture;
-            _eyesSprite.Visible = _eyesSprite.Texture != null;
+            hybridTexture = HybridRegistry.Instance.GetHybridTexture(
+                mom.SpeciesId, dad.SpeciesId);
         }
 
-        if (_finsSprite != null)
+        if (hybridTexture != null)
         {
-            _finsSprite.Texture = dad.FinsTexture ?? mom.FinsTexture;
-            _finsSprite.Visible = _finsSprite.Texture != null;
-        }
+            if (_bodySprite != null)
+                _bodySprite.Texture = hybridTexture;
 
-        if (_tailSprite != null)
+            if (_finsSprite != null)
+                _finsSprite.Visible = false;
+
+            if (_tailSprite != null)
+                _tailSprite.Visible = false;
+
+            if (_eyesSprite != null)
+                _eyesSprite.Visible = false;
+        }
+        else
         {
-            _tailSprite.Texture = dad.TailTexture ?? mom.TailTexture;
-            _tailSprite.Visible = _tailSprite.Texture != null;
+            if (_bodySprite != null)
+                _bodySprite.Texture = mom.BodyTexture ?? dad.BodyTexture;
+
+            if (_eyesSprite != null)
+            {
+                _eyesSprite.Texture = mom.EyesTexture ?? dad.EyesTexture;
+                _eyesSprite.Visible = _eyesSprite.Texture != null;
+            }
+
+            if (_finsSprite != null)
+            {
+                _finsSprite.Texture = dad.FinsTexture ?? mom.FinsTexture;
+                _finsSprite.Visible = _finsSprite.Texture != null;
+            }
+
+            if (_tailSprite != null)
+            {
+                _tailSprite.Texture = dad.TailTexture ?? mom.TailTexture;
+                _tailSprite.Visible = _tailSprite.Texture != null;
+            }
         }
 
         if (_visualRoot != null)

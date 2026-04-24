@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="FishData" format=3 uid="uid://7ghd0reqtax"]
+
+[ext_resource type="PackedScene" uid="uid://bgiqlv2kr3ftq" path="res://node_2d.tscn" id="4_h6fc1"]
+[ext_resource type="Texture2D" uid="uid://b42ho7leqo2pt" path="res://assets/fish_part/tetra/tetra_original.png" id="5_we8ls"]
+[ext_resource type="Script" uid="uid://colku0fklb2ii" path="res://FishData.cs" id="7_q58e6"]
+
+[resource]
+script = ExtResource("7_q58e6")
+FishName = "Тетра"
+Description = "Красивая синяя рыба"
+Price = 20
+IncomePerSec = 1.5
+FryDurationSec = 15.0
+TeenDurationSec = 35.0
+AdultStageCoins = 14
+BreedWeight = 1.3
+SpeciesId = "tetra"
+CompatibleSpeciesIds = PackedStringArray("guppy", "scalarya")
+BodyTexture = ExtResource("5_we8ls")
+Icon = ExtResource("5_we8ls")
+FishScene = ExtResource("4_h6fc1")

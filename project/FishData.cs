@@ -28,6 +28,8 @@ public partial class FishData : Resource
     [Export] public Texture2D TailTexture;
     [Export] public Texture2D EyesTexture;
     [Export] public Color BaseColor = new Color(1, 1, 1, 1);
+    [ExportCategory("Hybrid")]
+    [Export] public Texture2D HybridTexture;
     
     [ExportCategory("Stage Scales")]
     [Export] public Vector2 FryScale = new Vector2(0.4f, 0.4f);

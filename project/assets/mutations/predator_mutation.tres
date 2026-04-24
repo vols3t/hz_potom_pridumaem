@@ -6,9 +6,10 @@
 script = ExtResource("1_nbl77")
 MutationName = "predator"
 Description = "Рыба мало ела и стала агрессивной"
-ScaleModifier = Vector2(1.1, 1.1)
+ColorTint = Color(1, 0.0627451, 0.33333334, 0.8235294)
+ScaleModifier = Vector2(0.8, 0.8)
 SpeedMultiplier = 2.0
 IncomeMultiplier = 0.5
 MakesPredator = true
 Trigger = 2
-TriggerThreshold = 180.0
+TriggerThreshold = 100.0

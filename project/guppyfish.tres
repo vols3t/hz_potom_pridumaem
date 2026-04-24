@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="FishData" format=3 uid="uid://5cpvr4706vct"]
+
+[ext_resource type="Script" uid="uid://colku0fklb2ii" path="res://FishData.cs" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://bgiqlv2kr3ftq" path="res://node_2d.tscn" id="3_scene"]
+[ext_resource type="Texture2D" uid="uid://bkq3gafr4vwol" path="res://assets/fish_part/guppy/guppy1.png" id="6_l0luv"]
+
+[resource]
+script = ExtResource("1_script")
+FishName = "Гуппи"
+Description = "Милая рыбка гуппи"
+Price = 30
+IncomePerSec = 2.0
+Rarity = 1
+FryDurationSec = 14.0
+TeenDurationSec = 25.0
+TeenStageCoins = 10
+AdultStageCoins = 14
+BreedWeight = 1.3
+SpeciesId = "guppy"
+CompatibleSpeciesIds = PackedStringArray("tetra", "pleko")
+TailTexture = ExtResource("6_l0luv")
+TeenScale = Vector2(0.55, 0.55)
+AdultScale = Vector2(0.8, 0.8)
+Icon = ExtResource("6_l0luv")
+FishScene = ExtResource("3_scene")

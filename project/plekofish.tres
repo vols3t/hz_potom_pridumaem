@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="FishData" format=3 uid="uid://bd0r2tbnlyk5"]
+
+[ext_resource type="Texture2D" uid="uid://ctrnklggktlot" path="res://assets/fish_part/pleko/pleko.png" id="1_it0ht"]
+[ext_resource type="Script" uid="uid://colku0fklb2ii" path="res://FishData.cs" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://bgiqlv2kr3ftq" path="res://node_2d.tscn" id="3_scene"]
+
+[resource]
+script = ExtResource("1_script")
+FishName = "Плеко"
+Description = ""
+Price = 80
+Rarity = 1
+FryDurationSec = 22.0
+TeenStageCoins = 10
+AdultStageCoins = 18
+BreedWeight = 0.8
+SpeciesId = "pleko"
+CompatibleSpeciesIds = PackedStringArray("guppy")
+BodyTexture = ExtResource("1_it0ht")
+Icon = ExtResource("1_it0ht")
+FishScene = ExtResource("3_scene")

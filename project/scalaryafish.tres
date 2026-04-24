@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="FishData" format=3 uid="uid://ct5slvvoduelg"]
+
+[ext_resource type="Texture2D" uid="uid://col63xb1khns3" path="res://assets/fish_part/scalarya/scalarya.png" id="1_er454"]
+[ext_resource type="PackedScene" uid="uid://bgiqlv2kr3ftq" path="res://node_2d.tscn" id="2_kxyp3"]
+[ext_resource type="Script" uid="uid://colku0fklb2ii" path="res://FishData.cs" id="3_tslp8"]
+
+[resource]
+script = ExtResource("3_tslp8")
+FishName = "Скалярия"
+Description = "Очень редкая рыба"
+IncomePerSec = 4.0
+Rarity = 2
+FryDurationSec = 11.0
+TeenDurationSec = 20.0
+AdultStageCoins = 14
+BreedWeight = 1.3
+SpeciesId = "scalarya"
+CompatibleSpeciesIds = PackedStringArray("tetra")
+BodyTexture = ExtResource("1_er454")
+TeenScale = Vector2(0.55, 0.55)
+AdultScale = Vector2(0.8, 0.8)
+Icon = ExtResource("1_er454")
+FishScene = ExtResource("2_kxyp3")
