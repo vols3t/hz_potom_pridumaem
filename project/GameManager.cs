@@ -13,7 +13,7 @@ public partial class GameManager : Node
     [Export] public int CommonBirthCoins = 12;
     [Export] public int RareBirthCoins = 28;
     [Export] public int UniqueBirthCoins = 55;
-    [Export] public float PassiveIncomeMultiplier = 0.2f;
+    [Export] public float MaxIncomePerFishPerSec = 0.5f;
 
     [ExportCategory("Breeding")] [Export] public float BreedChanceOnContact = 0.7f;
     [Export] public float ParentBreedCooldownSec = 25f;
@@ -278,8 +278,11 @@ public partial class GameManager : Node
         foreach (var fish in _fishList)
             total += GetFishIncome(fish);
 
-        return total * Mathf.Max(0f, PassiveIncomeMultiplier);
+        return total;
     }
+
+    public float GetFishIncomePerSecond(Node2d fish) =>
+        GetFishIncome(fish);
 
     private float GetFishIncome(Node2d fish)
     {
@@ -304,7 +307,7 @@ public partial class GameManager : Node
 
         income *= fish.GetIncomeMultiplier();
 
-        return income;
+        return Mathf.Clamp(income, 0f, Mathf.Max(0f, MaxIncomePerFishPerSec));
     }
 
     private void OnFishStageChanged(Node2d fish)

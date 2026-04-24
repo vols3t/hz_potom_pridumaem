@@ -86,26 +86,29 @@ public partial class FishInfoPanel : PanelContainer
         }
 
         if (AgeLabel != null)
-            AgeLabel.Text = $"{Localization.T("Age")}: {fish.AgeSec:F0}с";
+            AgeLabel.Text = $"{Localization.T("Age")}: {fish.AgeSec:F0} \u0441";
 
         if (IncomeLabel != null)
         {
-            var income = 0f;
-            if (fish.Data != null)
+            var gm = GameManager.Instance;
+            var income = gm != null ? gm.GetFishIncomePerSecond(fish) : 0f;
+
+            if (gm == null && fish.Data != null)
             {
                 income = fish.Data.IncomePerSec
                          * fish.Data.GetRarityMultiplier()
-                         * fish.CurrentStage switch
+                         * (fish.CurrentStage switch
                          {
                              FishGrowthStage.Fry => 0.25f,
                              FishGrowthStage.Teen => 0.6f,
                              FishGrowthStage.Adult => 1.0f,
                              _ => 1.0f
-                         }
+                         })
                          * fish.GetIncomeMultiplier();
+                income = Mathf.Clamp(income, 0f, 0.5f);
             }
 
-            IncomeLabel.Text = $"{Localization.T("Income")}: +{income:F1}/сек";
+            IncomeLabel.Text = $"{Localization.T("Income")}: +{income:F1}/\u0441\u0435\u043a";
         }
 
         if (HungerLabel != null)
@@ -116,17 +119,17 @@ public partial class FishInfoPanel : PanelContainer
             if (fish.TimeSinceLastFed < 15f)
             {
                 hungerKey = "Fed";
-                hungerEmoji = "🟢";
+                hungerEmoji = "\U0001F7E2";
             }
             else if (fish.TimeSinceLastFed < 60f)
             {
                 hungerKey = "Hungry";
-                hungerEmoji = "🟡";
+                hungerEmoji = "\U0001F7E1";
             }
             else
             {
                 hungerKey = "Starving";
-                hungerEmoji = "🔴";
+                hungerEmoji = "\U0001F534";
             }
 
             HungerLabel.Text = $"{Localization.T("Hunger")}: {hungerEmoji} {Localization.T(hungerKey)}";
@@ -158,7 +161,7 @@ public partial class FishInfoPanel : PanelContainer
         foreach (var mutation in _selectedFish.Mutations)
         {
             var label = new Label();
-            label.Text = $"  • {Localization.T(mutation.MutationName)}";
+            label.Text = $"  \u2022 {Localization.T(mutation.MutationName)}";
             MutationsList.AddChild(label);
         }
     }
@@ -216,3 +219,4 @@ public partial class FishInfoPanel : PanelContainer
         GD.Print($"[Rename] Fish renamed to: {newName}");
     }
 }
+
