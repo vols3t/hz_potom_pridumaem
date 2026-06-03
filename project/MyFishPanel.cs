@@ -87,7 +87,7 @@ public partial class MyFishPanel : PanelContainer
 
     private void BuildUi()
     {
-        AddThemeStyleboxOverride("panel", BuildPanelStyle(new Color("112b45"), new Color("2f4f73"), 3, 16));
+        AddThemeStyleboxOverride("panel", UiTheme.BuildPanelStyle(new Color("112b45"), new Color("2f4f73"), 3, 16));
 
         var rootMargin = new MarginContainer();
         rootMargin.AddThemeConstantOverride("margin_left", 14);
@@ -114,7 +114,7 @@ public partial class MyFishPanel : PanelContainer
         {
             CustomMinimumSize = new Vector2(0, 92)
         };
-        headerPanel.AddThemeStyleboxOverride("panel", BuildPanelStyle(new Color("16314d"), new Color("35597e"), 2, 12));
+        headerPanel.AddThemeStyleboxOverride("panel", UiTheme.BuildPanelStyle(new Color("16314d"), new Color("35597e"), 2, 12));
         parent.AddChild(headerPanel);
 
         var margin = new MarginContainer();
@@ -146,9 +146,9 @@ public partial class MyFishPanel : PanelContainer
             CustomMinimumSize = new Vector2(44, 40),
             FocusMode = FocusModeEnum.None
         };
-        closeButton.AddThemeStyleboxOverride("normal", BuildButtonStyle(new Color("274563"), new Color("7da6d1"), 2, 8));
-        closeButton.AddThemeStyleboxOverride("hover", BuildButtonStyle(new Color("315679"), new Color("b1d7ff"), 2, 8));
-        closeButton.AddThemeStyleboxOverride("pressed", BuildButtonStyle(new Color("1f3851"), new Color("b1d7ff"), 2, 8));
+        closeButton.AddThemeStyleboxOverride("normal", UiTheme.BuildButtonStyle(new Color("274563"), new Color("7da6d1"), 2, 8));
+        closeButton.AddThemeStyleboxOverride("hover", UiTheme.BuildButtonStyle(new Color("315679"), new Color("b1d7ff"), 2, 8));
+        closeButton.AddThemeStyleboxOverride("pressed", UiTheme.BuildButtonStyle(new Color("1f3851"), new Color("b1d7ff"), 2, 8));
         closeButton.AddThemeColorOverride("font_color", new Color("eaf4ff"));
         closeButton.AddThemeFontSizeOverride("font_size", 24);
         closeButton.Pressed += ClosePanel;
@@ -169,7 +169,7 @@ public partial class MyFishPanel : PanelContainer
         {
             SizeFlagsVertical = SizeFlags.ExpandFill
         };
-        contentPanel.AddThemeStyleboxOverride("panel", BuildPanelStyle(new Color("15324e"), new Color("3a5f83"), 2, 12));
+        contentPanel.AddThemeStyleboxOverride("panel", UiTheme.BuildPanelStyle(new Color("15324e"), new Color("3a5f83"), 2, 12));
         parent.AddChild(contentPanel);
 
         var margin = new MarginContainer();
@@ -195,6 +195,16 @@ public partial class MyFishPanel : PanelContainer
         scroll.AddChild(_grid);
     }
 
+    private sealed class FishCardRef
+    {
+        public Node2d Fish;
+        public int TeenReward;
+        public int AdultReward;
+        public Label PropertiesLabel;
+    }
+
+    private readonly System.Collections.Generic.List<FishCardRef> _cards = new();
+
     private void RefreshAll(bool force = false)
     {
         if (!_uiBuilt)
@@ -202,17 +212,37 @@ public partial class MyFishPanel : PanelContainer
 
         var gm = GameManager.Instance;
         var fishes = gm?.GetFishSnapshot();
-        RefreshCards(fishes, gm?.MaxFishCount ?? 0);
+        var maxFishCount = gm?.MaxFishCount ?? 0;
+        var fishCount = fishes?.Count ?? 0;
+
+        _summaryLabel.Text = $"В аквариуме: {fishCount} / {maxFishCount}";
+
+        if (force || ListChanged(fishes))
+            Rebuild(fishes);
+        else
+            UpdateDynamicLabels();
     }
 
-    private void RefreshCards(System.Collections.Generic.IReadOnlyList<Node2d> fishes, int maxFishCount)
+    private bool ListChanged(System.Collections.Generic.IReadOnlyList<Node2d> fishes)
+    {
+        var count = fishes?.Count ?? 0;
+        if (count != _cards.Count)
+            return true;
+
+        for (var i = 0; i < count; i++)
+            if (_cards[i].Fish != fishes[i])
+                return true;
+
+        return false;
+    }
+
+    private void Rebuild(System.Collections.Generic.IReadOnlyList<Node2d> fishes)
     {
         foreach (var child in _grid.GetChildren())
             child.QueueFree();
+        _cards.Clear();
 
         var fishCount = fishes?.Count ?? 0;
-        _summaryLabel.Text = $"В аквариуме: {fishCount} / {maxFishCount}";
-
         if (fishCount == 0)
         {
             var empty = new Label
@@ -233,6 +263,18 @@ public partial class MyFishPanel : PanelContainer
             _grid.AddChild(CreateFishCard(fishes[i]));
     }
 
+    private void UpdateDynamicLabels()
+    {
+        for (var i = 0; i < _cards.Count; i++)
+        {
+            var card = _cards[i];
+            if (card.Fish == null || !IsInstanceValid(card.Fish) || card.PropertiesLabel == null)
+                continue;
+
+            card.PropertiesLabel.Text = BuildPropertiesText(card.Fish, card.TeenReward, card.AdultReward);
+        }
+    }
+
     private Control CreateFishCard(Node2d fish)
     {
         var data = fish?.Data;
@@ -245,7 +287,7 @@ public partial class MyFishPanel : PanelContainer
             CustomMinimumSize = new Vector2(220, 220),
             SizeFlagsHorizontal = SizeFlags.ExpandFill
         };
-        card.AddThemeStyleboxOverride("panel", BuildPanelStyle(new Color("173550"), new Color("3f658a"), 2, 8));
+        card.AddThemeStyleboxOverride("panel", UiTheme.BuildPanelStyle(new Color("173550"), new Color("3f658a"), 2, 8));
 
         var margin = new MarginContainer();
         margin.AddThemeConstantOverride("margin_left", 8);
@@ -296,6 +338,14 @@ public partial class MyFishPanel : PanelContainer
         description.AddThemeColorOverride("font_color", new Color("7fa4c8"));
         description.AddThemeFontSizeOverride("font_size", 11);
         content.AddChild(description);
+
+        _cards.Add(new FishCardRef
+        {
+            Fish = fish,
+            TeenReward = teenReward,
+            AdultReward = adultReward,
+            PropertiesLabel = properties
+        });
 
         return card;
     }
@@ -357,29 +407,4 @@ public partial class MyFishPanel : PanelContainer
         };
     }
 
-    private static StyleBoxFlat BuildPanelStyle(Color background, Color border, int borderWidth, int radius)
-    {
-        var style = new StyleBoxFlat
-        {
-            BgColor = background,
-            BorderColor = border,
-            CornerRadiusTopLeft = radius,
-            CornerRadiusTopRight = radius,
-            CornerRadiusBottomLeft = radius,
-            CornerRadiusBottomRight = radius
-        };
-
-        style.SetBorderWidthAll(borderWidth);
-        return style;
-    }
-
-    private static StyleBoxFlat BuildButtonStyle(Color background, Color border, int borderWidth, int radius)
-    {
-        var style = BuildPanelStyle(background, border, borderWidth, radius);
-        style.ContentMarginTop = 4;
-        style.ContentMarginBottom = 4;
-        style.ContentMarginLeft = 10;
-        style.ContentMarginRight = 10;
-        return style;
-    }
 }

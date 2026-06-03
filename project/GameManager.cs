@@ -10,10 +10,10 @@ public partial class GameManager : Node
     public string LastEventText { get; private set; } = "";
 
     [Export] public int MaxFishCount = 15;
-    [Export] public int CommonBirthCoins = 12;
-    [Export] public int RareBirthCoins = 28;
-    [Export] public int UniqueBirthCoins = 55;
-    [Export] public float MaxIncomePerFishPerSec = 0.5f;
+    [Export] public int CommonBirthCoins = 30;
+    [Export] public int RareBirthCoins = 80;
+    [Export] public int UniqueBirthCoins = 250;
+    [Export] public float MaxIncomePerFishPerSec = 50.0f;
 
     [ExportCategory("Breeding")] [Export] public float BreedChanceOnContact = 0.7f;
     [Export] public float ParentBreedCooldownSec = 25f;
@@ -37,21 +37,25 @@ public partial class GameManager : Node
     private float _elapsedSec = 0f;
     private float _meetingTimerSec = 0f;
     private float _mutationTimerSec = 0f;
+    private float _autosaveTimerSec = 0f;
+    private Godot.Collections.Array _pendingFishLoad;
 
-    public override void _EnterTree()
+    private const string SaveFilePath = "user://save.cfg";
+    private const float AutosaveIntervalSec = 30f;
+
+    public override void _EnterTree() => Instance = this;
+
+    public override void _Ready()
     {
-        if (Instance == null)
-        {
-            Instance = this;
-            return;
-        }
-
-        QueueFree();
+        LoadMutations();
+        Load();
     }
 
-    public override void _Ready() =>
-        LoadMutations();
-
+    public override void _Notification(int what)
+    {
+        if (what == NotificationWMCloseRequest)
+            Save();
+    }
 
     public override void _Process(double delta)
     {
@@ -74,6 +78,13 @@ public partial class GameManager : Node
             _mutationTimerSec = 0f;
             EvaluateMutations();
         }
+
+        _autosaveTimerSec += d;
+        if (_autosaveTimerSec >= AutosaveIntervalSec)
+        {
+            _autosaveTimerSec = 0f;
+            Save();
+        }
     }
 
     public void ConfigureAquarium(Node2D aquarium, FishData[] catalog, Vector2 spawnMin, Vector2 spawnMax)
@@ -82,6 +93,8 @@ public partial class GameManager : Node
         _catalog = catalog ?? System.Array.Empty<FishData>();
         _spawnAreaMin = spawnMin;
         _spawnAreaMax = spawnMax;
+
+        TryRestoreFishFromSave();
     }
 
     public void RegisterFish(Node2d fish)
@@ -203,6 +216,27 @@ public partial class GameManager : Node
                 count++;
 
         return count;
+    }
+
+    public (int Common, int Rare, int Unique) GetRarityCounts()
+    {
+        var common = 0;
+        var rare = 0;
+        var unique = 0;
+        foreach (var fish in _fishList)
+        {
+            if (fish?.Data == null)
+                continue;
+
+            switch (fish.Data.Rarity)
+            {
+                case FishRarity.Common: common++; break;
+                case FishRarity.Rare: rare++; break;
+                case FishRarity.Unique: unique++; break;
+            }
+        }
+
+        return (common, rare, unique);
     }
 
     public IReadOnlyList<Node2d> GetFishSnapshot()
@@ -417,6 +451,8 @@ public partial class GameManager : Node
         if (_fishList.Count < 2 || FishCount >= MaxFishCount)
             return;
 
+        var meetingDistanceSq = MeetingDistance * MeetingDistance;
+
         for (var i = 0; i < _fishList.Count - 1; i++)
         {
             var fishA = _fishList[i];
@@ -429,7 +465,7 @@ public partial class GameManager : Node
                 if (fishB == null)
                     continue;
 
-                if (fishA.GlobalPosition.DistanceTo(fishB.GlobalPosition) > MeetingDistance)
+                if (fishA.GlobalPosition.DistanceSquaredTo(fishB.GlobalPosition) > meetingDistanceSq)
                     continue;
 
                 var meetPos = (fishA.GlobalPosition + fishB.GlobalPosition) * 0.5f;
@@ -687,37 +723,191 @@ public partial class GameManager : Node
         hud?.OnFishClicked(fish);
     }
 
-    public override void _Input(InputEvent @event)
+    public void Save()
     {
-        if (@event is InputEventMouseButton mouseBtn
-            && mouseBtn.ButtonIndex == MouseButton.Left
-            && mouseBtn.Pressed)
-        {
-            var mousePos = GetViewport().GetMousePosition();
-            var clickedFish = FindClosestFishAt(mousePos, 50f);
+        if (_pendingFishLoad != null)
+            return;
 
-            if (clickedFish != null) OnFishClicked(clickedFish);
-        }
-    }
+        var config = new ConfigFile();
+        config.SetValue("meta", "version", 1);
+        config.SetValue("economy", "money", Money);
 
-    private Node2d FindClosestFishAt(Vector2 pos, float maxDistance)
-    {
-        Node2d closest = null;
-        var closestDist = maxDistance;
-
+        var fishArray = new Godot.Collections.Array();
         foreach (var fish in _fishList)
         {
-            if (fish == null)
+            if (fish == null || !IsInstanceValid(fish) || fish.Data == null || string.IsNullOrEmpty(fish.Data.ResourcePath))
                 continue;
 
-            var dist = fish.GlobalPosition.DistanceTo(pos);
-            if (dist < closestDist)
+            var dict = new Godot.Collections.Dictionary
             {
-                closestDist = dist;
-                closest = fish;
+                ["data_path"] = fish.Data.ResourcePath,
+                ["name"] = fish.FishName ?? "",
+                ["age"] = fish.AgeSec,
+                ["is_hybrid"] = fish.IsHybrid,
+                ["parent_a_path"] = fish.ParentA?.ResourcePath ?? "",
+                ["parent_b_path"] = fish.ParentB?.ResourcePath ?? "",
+            };
+
+            var muts = new Godot.Collections.Array();
+            foreach (var m in fish.Mutations)
+            {
+                if (m != null && !string.IsNullOrEmpty(m.ResourcePath))
+                    muts.Add(m.ResourcePath);
+            }
+            dict["mutations"] = muts;
+
+            fishArray.Add(dict);
+        }
+        config.SetValue("fish", "items", fishArray);
+
+        var discoveredArray = new Godot.Collections.Array();
+        foreach (var pair in _discoveredFishByName)
+        {
+            if (pair.Value == null || string.IsNullOrEmpty(pair.Value.ResourcePath))
+                continue;
+
+            var dict = new Godot.Collections.Dictionary
+            {
+                ["name"] = pair.Key,
+                ["data_path"] = pair.Value.ResourcePath,
+            };
+            discoveredArray.Add(dict);
+        }
+        config.SetValue("discovered", "items", discoveredArray);
+
+        var discoveredPaths = new Godot.Collections.Array();
+        foreach (var fish in _discoveredFish)
+            if (fish != null && !string.IsNullOrEmpty(fish.ResourcePath))
+                discoveredPaths.Add(fish.ResourcePath);
+        config.SetValue("discovered", "paths", discoveredPaths);
+
+        var ownedDict = new Godot.Collections.Dictionary();
+        foreach (var pair in _ownedShopItems)
+            ownedDict[pair.Key] = pair.Value;
+        config.SetValue("owned", "items", ownedDict);
+
+        config.SetValue("settings", "brightness", SettingsPanel.SavedBrightness);
+        config.SetValue("settings", "sound", SettingsPanel.SavedSound);
+
+        var error = config.Save(SaveFilePath);
+        if (error != Error.Ok)
+            GD.PrintErr($"[Save] Failed to save: {error}");
+    }
+
+    private void Load()
+    {
+        var config = new ConfigFile();
+        var error = config.Load(SaveFilePath);
+        if (error != Error.Ok)
+        {
+            GD.Print($"[Save] No save file ({SaveFilePath}), starting fresh");
+            return;
+        }
+
+        Money = (float)(double)config.GetValue("economy", "money", (double)Money);
+
+        SettingsPanel.SavedBrightness = (float)(double)config.GetValue("settings", "brightness", 50.0);
+        SettingsPanel.SavedSound = (float)(double)config.GetValue("settings", "sound", 80.0);
+
+        if (config.HasSectionKey("owned", "items"))
+        {
+            var ownedVar = config.GetValue("owned", "items");
+            var ownedDict = ownedVar.AsGodotDictionary();
+            foreach (var key in ownedDict.Keys)
+                _ownedShopItems[key.AsString()] = ownedDict[key].AsInt32();
+        }
+
+        if (config.HasSectionKey("discovered", "items"))
+        {
+            var discoveredArray = config.GetValue("discovered", "items").AsGodotArray();
+            foreach (var item in discoveredArray)
+            {
+                var dict = item.AsGodotDictionary();
+                var path = dict["data_path"].AsString();
+                var name = dict["name"].AsString();
+                var data = GD.Load<FishData>(path);
+                if (data == null)
+                    continue;
+
+                _discoveredFish.Add(data);
+                if (!string.IsNullOrWhiteSpace(name))
+                    _discoveredFishByName[name] = data;
             }
         }
 
-        return closest;
+        if (config.HasSectionKey("discovered", "paths"))
+        {
+            var pathsArray = config.GetValue("discovered", "paths").AsGodotArray();
+            foreach (var item in pathsArray)
+            {
+                var data = GD.Load<FishData>(item.AsString());
+                if (data != null)
+                    _discoveredFish.Add(data);
+            }
+        }
+
+        if (config.HasSectionKey("fish", "items"))
+            _pendingFishLoad = config.GetValue("fish", "items").AsGodotArray();
+    }
+
+    private void TryRestoreFishFromSave()
+    {
+        if (_pendingFishLoad == null || _aquarium == null)
+            return;
+
+        var pending = _pendingFishLoad;
+        _pendingFishLoad = null;
+
+        var existing = new List<Node2d>(_fishList);
+        foreach (var fish in existing)
+        {
+            if (fish != null && IsInstanceValid(fish))
+                fish.QueueFree();
+        }
+        _fishList.Clear();
+        _nextBreedAtSec.Clear();
+
+        foreach (var item in pending)
+        {
+            var dict = item.AsGodotDictionary();
+            var dataPath = dict["data_path"].AsString();
+            var data = GD.Load<FishData>(dataPath);
+            if (data == null)
+                continue;
+
+            var name = dict.ContainsKey("name") ? dict["name"].AsString() : null;
+            var age = dict.ContainsKey("age") ? (float)dict["age"].AsDouble() : 0f;
+            var isHybrid = dict.ContainsKey("is_hybrid") && dict["is_hybrid"].AsBool();
+
+            Node2d spawned;
+            if (isHybrid)
+            {
+                var parentA = GD.Load<FishData>(dict["parent_a_path"].AsString());
+                var parentB = GD.Load<FishData>(dict["parent_b_path"].AsString());
+                if (parentA == null || parentB == null)
+                    continue;
+
+                spawned = SpawnHybridFish(parentA, parentB, GetRandomSpawnPosition());
+            }
+            else
+            {
+                spawned = SpawnFish(data, true, GetRandomSpawnPosition(), name);
+            }
+
+            if (spawned == null)
+                continue;
+
+            spawned.RestoreAge(age);
+
+            if (dict.ContainsKey("mutations"))
+            {
+                foreach (var mp in dict["mutations"].AsGodotArray())
+                {
+                    var mutation = GD.Load<FishMutation>(mp.AsString());
+                    if (mutation != null)
+                        spawned.AddMutation(mutation);
+                }
+            }
+        }
     }
 }

@@ -13,6 +13,18 @@ public partial class SettingsPanel : PanelContainer
     private static float _savedBrightness = 50f;
     private static float _savedSound = 80f;
 
+    public static float SavedBrightness
+    {
+        get => _savedBrightness;
+        set => _savedBrightness = Mathf.Clamp(value, 0f, 100f);
+    }
+
+    public static float SavedSound
+    {
+        get => _savedSound;
+        set => _savedSound = Mathf.Clamp(value, 0f, 100f);
+    }
+
     private HSlider _brightnessSlider;
     private Label _brightnessValue;
     private HSlider _soundSlider;
@@ -149,7 +161,7 @@ public partial class SettingsPanel : PanelContainer
 
     private void BuildUi()
     {
-        AddThemeStyleboxOverride("panel", BuildPanelStyle(new Color("112b45"), new Color("2f4f73"), 3, 16));
+        AddThemeStyleboxOverride("panel", UiTheme.BuildPanelStyle(new Color("112b45"), new Color("2f4f73"), 3, 16));
 
         var rootMargin = new MarginContainer();
         rootMargin.AddThemeConstantOverride("margin_left", 14);
@@ -176,7 +188,7 @@ public partial class SettingsPanel : PanelContainer
         {
             CustomMinimumSize = new Vector2(0, 92)
         };
-        header.AddThemeStyleboxOverride("panel", BuildPanelStyle(new Color("16314d"), new Color("35597e"), 2, 12));
+        header.AddThemeStyleboxOverride("panel", UiTheme.BuildPanelStyle(new Color("16314d"), new Color("35597e"), 2, 12));
         parent.AddChild(header);
 
         var margin = new MarginContainer();
@@ -208,9 +220,9 @@ public partial class SettingsPanel : PanelContainer
             CustomMinimumSize = new Vector2(44, 40),
             FocusMode = FocusModeEnum.None
         };
-        closeButton.AddThemeStyleboxOverride("normal", BuildButtonStyle(new Color("274563"), new Color("7da6d1"), 2, 8));
-        closeButton.AddThemeStyleboxOverride("hover", BuildButtonStyle(new Color("315679"), new Color("b1d7ff"), 2, 8));
-        closeButton.AddThemeStyleboxOverride("pressed", BuildButtonStyle(new Color("1f3851"), new Color("b1d7ff"), 2, 8));
+        closeButton.AddThemeStyleboxOverride("normal", UiTheme.BuildButtonStyle(new Color("274563"), new Color("7da6d1"), 2, 8));
+        closeButton.AddThemeStyleboxOverride("hover", UiTheme.BuildButtonStyle(new Color("315679"), new Color("b1d7ff"), 2, 8));
+        closeButton.AddThemeStyleboxOverride("pressed", UiTheme.BuildButtonStyle(new Color("1f3851"), new Color("b1d7ff"), 2, 8));
         closeButton.AddThemeColorOverride("font_color", new Color("eaf4ff"));
         closeButton.AddThemeFontSizeOverride("font_size", 24);
         closeButton.Pressed += ClosePanel;
@@ -223,7 +235,7 @@ public partial class SettingsPanel : PanelContainer
         {
             SizeFlagsVertical = SizeFlags.ExpandFill
         };
-        panel.AddThemeStyleboxOverride("panel", BuildPanelStyle(new Color("15324e"), new Color("3a5f83"), 2, 12));
+        panel.AddThemeStyleboxOverride("panel", UiTheme.BuildPanelStyle(new Color("15324e"), new Color("3a5f83"), 2, 12));
         parent.AddChild(panel);
 
         var margin = new MarginContainer();
@@ -268,7 +280,7 @@ public partial class SettingsPanel : PanelContainer
         {
             CustomMinimumSize = new Vector2(0, 100)
         };
-        card.AddThemeStyleboxOverride("panel", BuildPanelStyle(new Color("173550"), new Color("3f658a"), 2, 10));
+        card.AddThemeStyleboxOverride("panel", UiTheme.BuildPanelStyle(new Color("173550"), new Color("3f658a"), 2, 10));
         parent.AddChild(card);
 
         var margin = new MarginContainer();
@@ -615,28 +627,4 @@ public partial class SettingsPanel : PanelContainer
     [DllImport("ole32.dll")]
     private static extern void CoUninitialize();
 
-    private static StyleBoxFlat BuildPanelStyle(Color background, Color border, int borderWidth, int radius)
-    {
-        var style = new StyleBoxFlat
-        {
-            BgColor = background,
-            BorderColor = border,
-            CornerRadiusTopLeft = radius,
-            CornerRadiusTopRight = radius,
-            CornerRadiusBottomLeft = radius,
-            CornerRadiusBottomRight = radius
-        };
-        style.SetBorderWidthAll(borderWidth);
-        return style;
-    }
-
-    private static StyleBoxFlat BuildButtonStyle(Color background, Color border, int borderWidth, int radius)
-    {
-        var style = BuildPanelStyle(background, border, borderWidth, radius);
-        style.ContentMarginTop = 4;
-        style.ContentMarginBottom = 4;
-        style.ContentMarginLeft = 10;
-        style.ContentMarginRight = 10;
-        return style;
-    }
 }

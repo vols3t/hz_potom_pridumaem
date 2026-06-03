@@ -7,13 +7,15 @@
 [resource]
 script = ExtResource("3_tslp8")
 FishName = "Скалярия"
-Description = "Очень редкая рыба"
-IncomePerSec = 4.0
+Description = "Уникальная рыба — настоящая жемчужина аквариума"
+Price = 1000
+IncomePerSec = 10.0
 Rarity = 2
 FryDurationSec = 11.0
 TeenDurationSec = 20.0
-AdultStageCoins = 14
-BreedWeight = 1.3
+TeenStageCoins = 150
+AdultStageCoins = 300
+BreedWeight = 0.5
 SpeciesId = "scalarya"
 CompatibleSpeciesIds = PackedStringArray("tetra")
 BodyTexture = ExtResource("1_er454")

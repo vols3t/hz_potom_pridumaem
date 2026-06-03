@@ -7,12 +7,14 @@
 [resource]
 script = ExtResource("1_script")
 FishName = "Плеко"
-Description = ""
-Price = 80
+Description = "Медленно растёт, но приносит хороший доход"
+Price = 300
+IncomePerSec = 6.0
 Rarity = 1
 FryDurationSec = 22.0
-TeenStageCoins = 10
-AdultStageCoins = 18
+TeenDurationSec = 50.0
+TeenStageCoins = 60
+AdultStageCoins = 120
 BreedWeight = 0.8
 SpeciesId = "pleko"
 CompatibleSpeciesIds = PackedStringArray("guppy")

@@ -7,12 +7,14 @@
 [resource]
 script = ExtResource("7_q58e6")
 FishName = "Тетра"
-Description = "Красивая синяя рыба"
-Price = 20
-IncomePerSec = 1.5
+Description = "Простая, но надёжная рыбка"
+Price = 50
+IncomePerSec = 2.0
+Rarity = 0
 FryDurationSec = 15.0
 TeenDurationSec = 35.0
-AdultStageCoins = 14
+TeenStageCoins = 15
+AdultStageCoins = 30
 BreedWeight = 1.3
 SpeciesId = "tetra"
 CompatibleSpeciesIds = PackedStringArray("guppy", "scalarya")

@@ -1,4 +1,4 @@
-﻿using Godot;
+using Godot;
 
 public partial class Hud : Control
 {
@@ -29,7 +29,6 @@ public partial class Hud : Control
     private global::BestiaryPanel _bestiaryPanelScript;
     private global::SettingsPanel _settingsPanelScript;
 
-    private Node2d _lastClickedFish;
     private float _previousMoney;
     private bool _hasMoneySnapshot;
     private float _smoothedNetFlowPerSec;
@@ -43,20 +42,9 @@ public partial class Hud : Control
         if (FeedBtn != null) FeedBtn.Pressed += OnFeedPressed;
 
         _shopPanelScript = ShopPanel as global::ShopPanel;
-        if (_shopPanelScript != null)
-            _shopPanelScript.ShopClosed += OnShopClosed;
-
         _myFishPanelScript = MyFishPanel as global::MyFishPanel;
-        if (_myFishPanelScript != null)
-            _myFishPanelScript.PanelClosed += OnMyFishClosed;
-
         _bestiaryPanelScript = BestiaryPanel as global::BestiaryPanel;
-        if (_bestiaryPanelScript != null)
-            _bestiaryPanelScript.PanelClosed += OnBestiaryClosed;
-
         _settingsPanelScript = SettingsPanel as global::SettingsPanel;
-        if (_settingsPanelScript != null)
-            _settingsPanelScript.PanelClosed += OnSettingsClosed;
 
         if (IncomeLabel != null)
         {
@@ -97,23 +85,20 @@ public partial class Hud : Control
             MoneyLabel.Text = $"Coins: {gm.Money:F0}";
 
         if (IncomeLabel != null)
-        {
-            IncomeLabel.Text = $"balance: {FormatSigned(_smoothedNetFlowPerSec)}";
-        }
+            IncomeLabel.Text = $"inc: {FormatSigned(_smoothedNetFlowPerSec)}";
 
         if (FishCountDisplay != null)
             FishCountDisplay.SetAmount(gm.FishCount);
         else if (FishCountLabel != null)
             FishCountLabel.Text = $"Fish: {gm.FishCount}";
 
-        if (CommonCountLabel != null)
-            CommonCountLabel.Text = $"Common: {gm.GetFishCountByRarity(FishRarity.Common)}";
-
-        if (RareCountLabel != null)
-            RareCountLabel.Text = $"Rare: {gm.GetFishCountByRarity(FishRarity.Rare)}";
-
-        if (UniqueCountLabel != null)
-            UniqueCountLabel.Text = $"Unique: {gm.GetFishCountByRarity(FishRarity.Unique)}";
+        if (CommonCountLabel != null || RareCountLabel != null || UniqueCountLabel != null)
+        {
+            var (common, rare, unique) = gm.GetRarityCounts();
+            if (CommonCountLabel != null) CommonCountLabel.Text = $"Common: {common}";
+            if (RareCountLabel != null) RareCountLabel.Text = $"Rare: {rare}";
+            if (UniqueCountLabel != null) UniqueCountLabel.Text = $"Unique: {unique}";
+        }
     }
 
     private static string FormatSigned(float value)
@@ -132,110 +117,61 @@ public partial class Hud : Control
             return;
         }
 
-        if (FishInfoPanel != null && FishInfoPanel.Visible)
-        {
-            GetTree().CreateTimer(0.05f).Timeout += () =>
-            {
-                if (FishInfoPanel.GetSelectedFish() == _lastClickedFish)
-                    return;
-
-                FishInfoPanel.Close();
-            };
-        }
+        CloseFishInfoPanel();
     }
 
     public void OnFishClicked(Node2d fish)
     {
-        _lastClickedFish = fish;
         FishInfoPanel?.ShowForFish(fish);
     }
 
-    private void OnCurrentFishPressed()
-    {
-        if (_myFishPanelScript != null)
-        {
-            if (_myFishPanelScript.Visible)
-                _myFishPanelScript.ClosePanel();
-            else
-            {
-                _shopPanelScript?.CloseShop();
-                _bestiaryPanelScript?.ClosePanel();
-                _settingsPanelScript?.ClosePanel();
-                CloseFishInfoPanel();
-                _myFishPanelScript.OpenPanel();
-            }
+    private void OnShopPressed() => TogglePanel(_shopPanelScript);
+    private void OnCurrentFishPressed() => TogglePanel(_myFishPanelScript);
+    private void OnBestiaryPressed() => TogglePanel(_bestiaryPanelScript);
+    private void OnSettingsPressed() => TogglePanel(_settingsPanelScript);
 
+    private void TogglePanel(Control panel)
+    {
+        if (panel == null)
+            return;
+
+        if (panel.Visible)
+        {
+            CallClose(panel);
             return;
         }
 
-        if (MyFishPanel != null)
-            MyFishPanel.Visible = !MyFishPanel.Visible;
+        if (panel != _shopPanelScript) CallClose(_shopPanelScript);
+        if (panel != _myFishPanelScript) CallClose(_myFishPanelScript);
+        if (panel != _bestiaryPanelScript) CallClose(_bestiaryPanelScript);
+        if (panel != _settingsPanelScript) CallClose(_settingsPanelScript);
+        CloseFishInfoPanel();
+
+        CallOpen(panel);
     }
 
-    private void OnBestiaryPressed()
+    private static void CallOpen(Control panel)
     {
-        if (_bestiaryPanelScript != null)
+        switch (panel)
         {
-            if (_bestiaryPanelScript.Visible)
-                _bestiaryPanelScript.ClosePanel();
-            else
-            {
-                _shopPanelScript?.CloseShop();
-                _myFishPanelScript?.ClosePanel();
-                _settingsPanelScript?.ClosePanel();
-                CloseFishInfoPanel();
-                _bestiaryPanelScript.OpenPanel();
-            }
-
-            return;
+            case global::ShopPanel s: s.OpenPanel(); break;
+            case global::MyFishPanel m: m.OpenPanel(); break;
+            case global::BestiaryPanel b: b.OpenPanel(); break;
+            case global::SettingsPanel st: st.OpenPanel(); break;
         }
-
-        if (BestiaryPanel != null)
-            BestiaryPanel.Visible = !BestiaryPanel.Visible;
     }
 
-    private void OnShopPressed()
+    private static void CallClose(Control panel)
     {
-        if (_shopPanelScript != null)
+        if (panel == null) return;
+
+        switch (panel)
         {
-            if (_shopPanelScript.Visible)
-                _shopPanelScript.CloseShop();
-            else
-            {
-                _myFishPanelScript?.ClosePanel();
-                _bestiaryPanelScript?.ClosePanel();
-                _settingsPanelScript?.ClosePanel();
-                CloseFishInfoPanel();
-                _shopPanelScript.OpenShop();
-            }
-
-            return;
+            case global::ShopPanel s: s.ClosePanel(); break;
+            case global::MyFishPanel m: m.ClosePanel(); break;
+            case global::BestiaryPanel b: b.ClosePanel(); break;
+            case global::SettingsPanel st: st.ClosePanel(); break;
         }
-
-        if (ShopPanel != null)
-            ShopPanel.Visible = !ShopPanel.Visible;
-    }
-
-    private void OnSettingsPressed()
-    {
-        if (_settingsPanelScript != null)
-        {
-            if (_settingsPanelScript.Visible)
-                _settingsPanelScript.ClosePanel();
-            else
-            {
-                _shopPanelScript?.CloseShop();
-                _myFishPanelScript?.ClosePanel();
-                _bestiaryPanelScript?.ClosePanel();
-                CloseFishInfoPanel();
-                _settingsPanelScript.OpenPanel();
-            }
-
-            return;
-        }
-
-        if (SettingsPanel != null)
-            SettingsPanel.Visible = !SettingsPanel.Visible;
     }
 
     private void OnFeedPressed()
@@ -250,50 +186,6 @@ public partial class Hud : Control
         FoodDropper.Instance?.StartDropMode(defaultFood);
     }
 
-    private void OnShopClosed()
-    {
-        CloseShop();
-    }
-
-    private void OnMyFishClosed()
-    {
-        CloseMyFishPanel();
-    }
-
-    private void OnBestiaryClosed()
-    {
-        CloseBestiaryPanel();
-    }
-
-    private void OnSettingsClosed()
-    {
-        CloseSettingsPanel();
-    }
-
-    private void CloseShop()
-    {
-        if (ShopPanel != null)
-            ShopPanel.Visible = false;
-    }
-
-    private void CloseMyFishPanel()
-    {
-        if (MyFishPanel != null)
-            MyFishPanel.Visible = false;
-    }
-
-    private void CloseBestiaryPanel()
-    {
-        if (BestiaryPanel != null)
-            BestiaryPanel.Visible = false;
-    }
-
-    private void CloseSettingsPanel()
-    {
-        if (SettingsPanel != null)
-            SettingsPanel.Visible = false;
-    }
-
     private void CloseFishInfoPanel()
     {
         if (FishInfoPanel != null && FishInfoPanel.Visible)
@@ -302,18 +194,6 @@ public partial class Hud : Control
 
     public override void _ExitTree()
     {
-        if (_shopPanelScript != null)
-            _shopPanelScript.ShopClosed -= OnShopClosed;
-
-        if (_myFishPanelScript != null)
-            _myFishPanelScript.PanelClosed -= OnMyFishClosed;
-
-        if (_bestiaryPanelScript != null)
-            _bestiaryPanelScript.PanelClosed -= OnBestiaryClosed;
-
-        if (_settingsPanelScript != null)
-            _settingsPanelScript.PanelClosed -= OnSettingsClosed;
-
         if (ShopBtn != null) ShopBtn.Pressed -= OnShopPressed;
         if (CurrentFishBtn != null) CurrentFishBtn.Pressed -= OnCurrentFishPressed;
         if (BestiaryBtn != null) BestiaryBtn.Pressed -= OnBestiaryPressed;

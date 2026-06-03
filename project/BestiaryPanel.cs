@@ -37,13 +37,17 @@ public partial class BestiaryPanel : PanelContainer
     private BestiaryFilter _activeFilter = BestiaryFilter.All;
     private bool _uiBuilt;
     private float _refreshTimerSec;
+    private int _lastDiscoveredCount = -1;
+    private int _lastFishCount = -1;
+    private int _lastCatalogCount = -1;
+    private BestiaryFilter _lastBuiltFilter = (BestiaryFilter)(-1);
 
     public override void _Ready()
     {
         ConfigureFullscreenLayout();
         _fallbackIcon = GD.Load<Texture2D>("res://assets/fishes/medium/clown-fish-medium.png");
         BuildUi();
-        RefreshAll();
+        RefreshAll(force: true);
         VisibilityChanged += OnVisibilityChanged;
     }
 
@@ -79,7 +83,7 @@ public partial class BestiaryPanel : PanelContainer
 
         Visible = true;
         MoveToFront();
-        RefreshAll();
+        RefreshAll(force: true);
     }
 
     public void ClosePanel()
@@ -94,7 +98,7 @@ public partial class BestiaryPanel : PanelContainer
     private void OnVisibilityChanged()
     {
         if (Visible)
-            RefreshAll();
+            RefreshAll(force: true);
     }
 
     private void ConfigureFullscreenLayout()
@@ -113,7 +117,7 @@ public partial class BestiaryPanel : PanelContainer
 
     private void BuildUi()
     {
-        AddThemeStyleboxOverride("panel", BuildPanelStyle(new Color("112b45"), new Color("2f4f73"), 3, 16));
+        AddThemeStyleboxOverride("panel", UiTheme.BuildPanelStyle(new Color("112b45"), new Color("2f4f73"), 3, 16));
 
         var rootMargin = new MarginContainer();
         rootMargin.AddThemeConstantOverride("margin_left", 14);
@@ -140,7 +144,7 @@ public partial class BestiaryPanel : PanelContainer
         {
             CustomMinimumSize = new Vector2(0, 92)
         };
-        header.AddThemeStyleboxOverride("panel", BuildPanelStyle(new Color("16314d"), new Color("35597e"), 2, 12));
+        header.AddThemeStyleboxOverride("panel", UiTheme.BuildPanelStyle(new Color("16314d"), new Color("35597e"), 2, 12));
         parent.AddChild(header);
 
         var margin = new MarginContainer();
@@ -172,9 +176,9 @@ public partial class BestiaryPanel : PanelContainer
             CustomMinimumSize = new Vector2(44, 40),
             FocusMode = FocusModeEnum.None
         };
-        closeButton.AddThemeStyleboxOverride("normal", BuildButtonStyle(new Color("274563"), new Color("7da6d1"), 2, 8));
-        closeButton.AddThemeStyleboxOverride("hover", BuildButtonStyle(new Color("315679"), new Color("b1d7ff"), 2, 8));
-        closeButton.AddThemeStyleboxOverride("pressed", BuildButtonStyle(new Color("1f3851"), new Color("b1d7ff"), 2, 8));
+        closeButton.AddThemeStyleboxOverride("normal", UiTheme.BuildButtonStyle(new Color("274563"), new Color("7da6d1"), 2, 8));
+        closeButton.AddThemeStyleboxOverride("hover", UiTheme.BuildButtonStyle(new Color("315679"), new Color("b1d7ff"), 2, 8));
+        closeButton.AddThemeStyleboxOverride("pressed", UiTheme.BuildButtonStyle(new Color("1f3851"), new Color("b1d7ff"), 2, 8));
         closeButton.AddThemeColorOverride("font_color", new Color("eaf4ff"));
         closeButton.AddThemeFontSizeOverride("font_size", 24);
         closeButton.Pressed += ClosePanel;
@@ -187,7 +191,7 @@ public partial class BestiaryPanel : PanelContainer
         {
             SizeFlagsVertical = SizeFlags.ExpandFill
         };
-        panel.AddThemeStyleboxOverride("panel", BuildPanelStyle(new Color("15324e"), new Color("3a5f83"), 2, 12));
+        panel.AddThemeStyleboxOverride("panel", UiTheme.BuildPanelStyle(new Color("15324e"), new Color("3a5f83"), 2, 12));
         parent.AddChild(panel);
 
         var margin = new MarginContainer();
@@ -250,7 +254,7 @@ public partial class BestiaryPanel : PanelContainer
             SizeFlagsVertical = SizeFlags.ExpandFill,
             ClipContents = true
         };
-        root.AddThemeStyleboxOverride("panel", BuildPanelStyle(new Color("17324d"), new Color("3c5d80"), 2, 12));
+        root.AddThemeStyleboxOverride("panel", UiTheme.BuildPanelStyle(new Color("17324d"), new Color("3c5d80"), 2, 12));
         parent.AddChild(root);
 
         var margin = new MarginContainer();
@@ -316,21 +320,21 @@ public partial class BestiaryPanel : PanelContainer
         button.SetPressedNoSignal(isActive);
         button.AddThemeStyleboxOverride(
             "normal",
-            BuildButtonStyle(
+            UiTheme.BuildButtonStyle(
                 isActive ? new Color("2b5b87") : new Color("1d3d5c"),
                 isActive ? new Color("7ebef4") : new Color("476c90"),
                 2,
                 10));
         button.AddThemeStyleboxOverride(
             "hover",
-            BuildButtonStyle(
+            UiTheme.BuildButtonStyle(
                 isActive ? new Color("356d9f") : new Color("24496d"),
                 isActive ? new Color("a7dbff") : new Color("6d8fb1"),
                 2,
                 10));
         button.AddThemeStyleboxOverride(
             "pressed",
-            BuildButtonStyle(
+            UiTheme.BuildButtonStyle(
                 isActive ? new Color("224b71") : new Color("1a3856"),
                 isActive ? new Color("a7dbff") : new Color("6d8fb1"),
                 2,
@@ -338,10 +342,29 @@ public partial class BestiaryPanel : PanelContainer
         button.AddThemeColorOverride("font_color", isActive ? new Color("f5fcff") : new Color("d5e6fb"));
     }
 
-    private void RefreshAll()
+    private void RefreshAll(bool force = false)
     {
         if (!_uiBuilt)
             return;
+
+        var gm = GameManager.Instance;
+        var discoveredCount = gm?.GetDiscoveredFishByName().Count ?? 0;
+        var fishCount = gm?.FishCount ?? 0;
+        var catalogCount = CatalogFish?.Length ?? 0;
+
+        if (!force
+            && discoveredCount == _lastDiscoveredCount
+            && fishCount == _lastFishCount
+            && catalogCount == _lastCatalogCount
+            && _activeFilter == _lastBuiltFilter)
+        {
+            return;
+        }
+
+        _lastDiscoveredCount = discoveredCount;
+        _lastFishCount = fishCount;
+        _lastCatalogCount = catalogCount;
+        _lastBuiltFilter = _activeFilter;
 
         foreach (var filter in Enum.GetValues<BestiaryFilter>())
             RefreshFilterCards(filter);
@@ -418,7 +441,7 @@ public partial class BestiaryPanel : PanelContainer
         };
         card.AddThemeStyleboxOverride(
             "panel",
-            BuildPanelStyle(
+            UiTheme.BuildPanelStyle(
                 known ? new Color("173550") : new Color("1a3248"),
                 known ? new Color("3f658a") : new Color("516880"),
                 2,
@@ -574,28 +597,4 @@ public partial class BestiaryPanel : PanelContainer
         };
     }
 
-    private static StyleBoxFlat BuildPanelStyle(Color background, Color border, int borderWidth, int radius)
-    {
-        var style = new StyleBoxFlat
-        {
-            BgColor = background,
-            BorderColor = border,
-            CornerRadiusTopLeft = radius,
-            CornerRadiusTopRight = radius,
-            CornerRadiusBottomLeft = radius,
-            CornerRadiusBottomRight = radius
-        };
-        style.SetBorderWidthAll(borderWidth);
-        return style;
-    }
-
-    private static StyleBoxFlat BuildButtonStyle(Color background, Color border, int borderWidth, int radius)
-    {
-        var style = BuildPanelStyle(background, border, borderWidth, radius);
-        style.ContentMarginTop = 4;
-        style.ContentMarginBottom = 4;
-        style.ContentMarginLeft = 10;
-        style.ContentMarginRight = 10;
-        return style;
-    }
 }

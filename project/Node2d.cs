@@ -73,8 +73,8 @@ public partial class Node2d : CharacterBody2D
             && mouseBtn.ButtonIndex == MouseButton.Left
             && mouseBtn.Pressed)
         {
-            GD.Print($"[Click] Fish clicked: {FishName}");
             Clicked?.Invoke(this);
+            viewport.SetInputAsHandled();
         }
     }
 
@@ -134,7 +134,7 @@ public partial class Node2d : CharacterBody2D
         var d = (float)delta;
         AdvanceGrowth(d);
         ProcessHunger(d);
-        SeekFood();
+        SeekFood(d);
     }
 
     public override void _PhysicsProcess(double delta)
@@ -194,23 +194,23 @@ public partial class Node2d : CharacterBody2D
     public static string ToRussianFishName(string fishName)
     {
         if (string.IsNullOrWhiteSpace(fishName))
-            return "Р С‹Р±РєР°";
+            return "Рыбка";
 
         return fishName.Trim().ToLowerInvariant() switch
         {
-            "goldfish" => "Р—РѕР»РѕС‚Р°СЏ СЂС‹Р±РєР°",
-            "neon" => "РќРµРѕРЅ",
-            "neon tetra" => "РќРµРѕРЅ",
-            "clownfish" => "РљР»РѕСѓРЅ",
-            "guppy" => "Р“СѓРїРїРё",
-            "angelfish" => "РЎРєР°Р»СЏСЂРёСЏ",
-            "discus" => "Р”РёСЃРєСѓСЃ",
-            "swordtail" => "РњРµС‡РµРЅРѕСЃРµС†",
-            "tetra" => "РўРµС‚СЂР°",
-            "cardinal" => "РљР°СЂРґРёРЅР°Р»",
-            "barb" => "Р‘Р°СЂР±СѓСЃ",
-            "molly" => "РњРѕР»Р»РёРЅРµР·РёСЏ",
-            "betta" => "РџРµС‚СѓС€РѕРє",
+            "goldfish" => "Золотая рыбка",
+            "neon" => "Неон",
+            "neon tetra" => "Неон",
+            "clownfish" => "Клоун",
+            "guppy" => "Гуппи",
+            "angelfish" => "Скалярия",
+            "discus" => "Дискус",
+            "swordtail" => "Меченосец",
+            "tetra" => "Тетра",
+            "cardinal" => "Кардинал",
+            "barb" => "Барбус",
+            "molly" => "Моллинезия",
+            "betta" => "Петушок",
             _ => fishName
         };
     }
@@ -219,12 +219,7 @@ public partial class Node2d : CharacterBody2D
     {
         Data = momData;
         FishName = $"{momData.FishName}-{dadData.FishName}";
-        Description = $"Р“РёР±СЂРёРґ {momData.FishName} Рё {dadData.FishName}";
-
-        // РЎРјРµС€РёРІР°РµРј СЃРєРѕСЂРѕСЃС‚СЊ
-        Speed = momData.IncomePerSec + dadData.IncomePerSec > 0
-            ? Speed // РћСЃС‚Р°РІР»СЏРµРј РґРµС„РѕР»С‚
-            : Speed;
+        Description = $"Гибрид {momData.FishName} и {dadData.FishName}";
 
         ParentA = momData;
         ParentB = dadData;
@@ -493,6 +488,21 @@ public partial class Node2d : CharacterBody2D
         UpdateStageScale();
     }
 
+    public void RestoreAge(float age)
+    {
+        AgeSec = Mathf.Max(0f, age);
+        if (Data == null)
+            return;
+
+        CurrentStage = AgeSec >= Data.FryDurationSec + Data.TeenDurationSec
+            ? FishGrowthStage.Adult
+            : AgeSec >= Data.FryDurationSec
+                ? FishGrowthStage.Teen
+                : FishGrowthStage.Fry;
+
+        UpdateStageScale();
+    }
+
     private void PickRandomDirection()
     {
         _direction = new Vector2(
@@ -600,7 +610,10 @@ public partial class Node2d : CharacterBody2D
         _visualRoot.Rotation = angle;
     }
 
-    private void SeekFood()
+    private const float FoodScanIntervalSec = 0.25f;
+    private float _foodScanTimer;
+
+    private void SeekFood(float delta)
     {
         if (_eatCooldownTimer > 0f)
         {
@@ -610,28 +623,39 @@ public partial class Node2d : CharacterBody2D
         }
 
         if (IsInstanceValid(_targetFood)
-            && GlobalPosition.DistanceTo(_targetFood.GlobalPosition) <= GetCurrentDetectionRange())
+            && GlobalPosition.DistanceSquaredTo(_targetFood.GlobalPosition) <= GetCurrentDetectionRangeSquared())
             return;
+
+        _foodScanTimer -= delta;
+        if (_foodScanTimer > 0f)
+            return;
+
+        _foodScanTimer = FoodScanIntervalSec;
 
         _targetFood = null;
         _isSeekingFood = false;
 
-        var searchRange = GetCurrentDetectionRange();
-        var closestDist = searchRange;
+        var closestDistSq = GetCurrentDetectionRangeSquared();
 
         foreach (var node in GetTree().GetNodesInGroup("food"))
         {
             if (node is not FoodParticle food)
                 continue;
 
-            var dist = GlobalPosition.DistanceTo(food.GlobalPosition);
-            if (dist < closestDist)
+            var distSq = GlobalPosition.DistanceSquaredTo(food.GlobalPosition);
+            if (distSq < closestDistSq)
             {
-                closestDist = dist;
+                closestDistSq = distSq;
                 _targetFood = food;
                 _isSeekingFood = true;
             }
         }
+    }
+
+    private float GetCurrentDetectionRangeSquared()
+    {
+        var range = GetCurrentDetectionRange();
+        return range * range;
     }
 
     private float GetCurrentDetectionRange()

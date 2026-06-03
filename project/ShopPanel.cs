@@ -6,7 +6,7 @@ using System.Globalization;
 public partial class ShopPanel : PanelContainer
 {
     [Signal]
-    public delegate void ShopClosedEventHandler();
+    public delegate void PanelClosedEventHandler();
 
     [ExportCategory("Item Setup")]
     [Export] public PackedScene ShopItemScene;
@@ -87,6 +87,10 @@ public partial class ShopPanel : PanelContainer
     private readonly Dictionary<ShopCategory, CategoryView> _viewsByCategory = new();
     private readonly Dictionary<ShopCategory, int> _pageByCategory = new();
     private readonly Dictionary<ShopCategory, Button> _topTabs = new();
+    private readonly Dictionary<ShopCategory, List<KeyValuePair<ShopEntry, Button>>> _buyCardsByCategory = new();
+    private const string BuyButtonDefaultText = "купить";
+    private const string BuyButtonNoSlotsText = "лимит";
+    private const string BuyButtonTooExpensiveText = "дорого";
 
     private Texture2D _fallbackIcon;
     private Label _coinsValueLabel;
@@ -94,7 +98,6 @@ public partial class ShopPanel : PanelContainer
     private TabContainer _categoryTabs;
     private ShopCategory _activeCategory = ShopCategory.Fish;
     private bool _uiBuilt;
-    private int _lastDisplayedCoins = int.MinValue;
 
     public override void _Ready()
     {
@@ -124,7 +127,7 @@ public partial class ShopPanel : PanelContainer
 
         if (@event.IsActionPressed("ui_cancel"))
         {
-            CloseShop();
+            ClosePanel();
             GetViewport().SetInputAsHandled();
         }
     }
@@ -316,7 +319,7 @@ public partial class ShopPanel : PanelContainer
             }
         }
 
-        AddThemeStyleboxOverride("panel", BuildPanelStyle(new Color("112b45"), new Color("2f4f73"), 3, 16));
+        AddThemeStyleboxOverride("panel", UiTheme.BuildPanelStyle(new Color("112b45"), new Color("2f4f73"), 3, 16));
 
         var rootMargin = new MarginContainer();
         rootMargin.AddThemeConstantOverride("margin_left", 14);
@@ -341,7 +344,7 @@ public partial class ShopPanel : PanelContainer
         {
             CustomMinimumSize = new Vector2(0, 92)
         };
-        headerPanel.AddThemeStyleboxOverride("panel", BuildPanelStyle(new Color("16314d"), new Color("35597e"), 2, 12));
+        headerPanel.AddThemeStyleboxOverride("panel", UiTheme.BuildPanelStyle(new Color("16314d"), new Color("35597e"), 2, 12));
         parent.AddChild(headerPanel);
 
         var margin = new MarginContainer();
@@ -359,7 +362,7 @@ public partial class ShopPanel : PanelContainer
         {
             CustomMinimumSize = new Vector2(340, 64)
         };
-        coinsPanel.AddThemeStyleboxOverride("panel", BuildPanelStyle(new Color("1a3a58"), new Color("4e7092"), 2, 10));
+        coinsPanel.AddThemeStyleboxOverride("panel", UiTheme.BuildPanelStyle(new Color("1a3a58"), new Color("4e7092"), 2, 10));
         row.AddChild(coinsPanel);
 
         var coinsRow = new HBoxContainer();
@@ -404,12 +407,12 @@ public partial class ShopPanel : PanelContainer
             CustomMinimumSize = new Vector2(44, 40),
             FocusMode = FocusModeEnum.None
         };
-        closeButton.AddThemeStyleboxOverride("normal", BuildButtonStyle(new Color("274563"), new Color("7da6d1"), 2, 8));
-        closeButton.AddThemeStyleboxOverride("hover", BuildButtonStyle(new Color("315679"), new Color("b1d7ff"), 2, 8));
-        closeButton.AddThemeStyleboxOverride("pressed", BuildButtonStyle(new Color("1f3851"), new Color("b1d7ff"), 2, 8));
+        closeButton.AddThemeStyleboxOverride("normal", UiTheme.BuildButtonStyle(new Color("274563"), new Color("7da6d1"), 2, 8));
+        closeButton.AddThemeStyleboxOverride("hover", UiTheme.BuildButtonStyle(new Color("315679"), new Color("b1d7ff"), 2, 8));
+        closeButton.AddThemeStyleboxOverride("pressed", UiTheme.BuildButtonStyle(new Color("1f3851"), new Color("b1d7ff"), 2, 8));
         closeButton.AddThemeColorOverride("font_color", new Color("eaf4ff"));
         closeButton.AddThemeFontSizeOverride("font_size", 24);
-        closeButton.Pressed += CloseShop;
+        closeButton.Pressed += ClosePanel;
         row.AddChild(closeButton);
 
         _statusLabel = new Label
@@ -427,7 +430,7 @@ public partial class ShopPanel : PanelContainer
         {
             SizeFlagsVertical = SizeFlags.ExpandFill
         };
-        panel.AddThemeStyleboxOverride("panel", BuildPanelStyle(new Color("15324e"), new Color("3a5f83"), 2, 12));
+        panel.AddThemeStyleboxOverride("panel", UiTheme.BuildPanelStyle(new Color("15324e"), new Color("3a5f83"), 2, 12));
         parent.AddChild(panel);
 
         var margin = new MarginContainer();
@@ -490,7 +493,7 @@ public partial class ShopPanel : PanelContainer
             SizeFlagsVertical = SizeFlags.ExpandFill,
             ClipContents = true
         };
-        root.AddThemeStyleboxOverride("panel", BuildPanelStyle(new Color("17324d"), new Color("3c5d80"), 2, 12));
+        root.AddThemeStyleboxOverride("panel", UiTheme.BuildPanelStyle(new Color("17324d"), new Color("3c5d80"), 2, 12));
         container.AddChild(root);
 
         var margin = new MarginContainer();
@@ -542,10 +545,10 @@ public partial class ShopPanel : PanelContainer
             CustomMinimumSize = new Vector2(54, 44)
         };
 
-        prev.AddThemeStyleboxOverride("normal", BuildButtonStyle(new Color("1d3d5c"), new Color("476c90"), 2, 8));
-        prev.AddThemeStyleboxOverride("hover", BuildButtonStyle(new Color("24496d"), new Color("6d8fb1"), 2, 8));
-        next.AddThemeStyleboxOverride("normal", BuildButtonStyle(new Color("1d3d5c"), new Color("476c90"), 2, 8));
-        next.AddThemeStyleboxOverride("hover", BuildButtonStyle(new Color("24496d"), new Color("6d8fb1"), 2, 8));
+        prev.AddThemeStyleboxOverride("normal", UiTheme.BuildButtonStyle(new Color("1d3d5c"), new Color("476c90"), 2, 8));
+        prev.AddThemeStyleboxOverride("hover", UiTheme.BuildButtonStyle(new Color("24496d"), new Color("6d8fb1"), 2, 8));
+        next.AddThemeStyleboxOverride("normal", UiTheme.BuildButtonStyle(new Color("1d3d5c"), new Color("476c90"), 2, 8));
+        next.AddThemeStyleboxOverride("hover", UiTheme.BuildButtonStyle(new Color("24496d"), new Color("6d8fb1"), 2, 8));
         prev.AddThemeFontSizeOverride("font_size", 30);
         next.AddThemeFontSizeOverride("font_size", 30);
         prev.AddThemeColorOverride("font_color", new Color("dbe9ff"));
@@ -599,7 +602,7 @@ public partial class ShopPanel : PanelContainer
             Visible = false,
             MouseFilter = MouseFilterEnum.Ignore
         };
-        panel.AddThemeStyleboxOverride("panel", BuildPanelStyle(new Color("1a3856"), new Color("4b79a8"), 2, 10));
+        panel.AddThemeStyleboxOverride("panel", UiTheme.BuildPanelStyle(new Color("1a3856"), new Color("4b79a8"), 2, 10));
 
         var margin = new MarginContainer();
         margin.AddThemeConstantOverride("margin_left", 16);
@@ -665,7 +668,7 @@ public partial class ShopPanel : PanelContainer
             var panel = pair.Value.Root;
             var bg = isActive ? new Color("1e3f62") : new Color("17324d");
             var border = isActive ? new Color("79b4e8") : new Color("3c5d80");
-            panel.AddThemeStyleboxOverride("panel", BuildPanelStyle(bg, border, isActive ? 3 : 2, 12));
+            panel.AddThemeStyleboxOverride("panel", UiTheme.BuildPanelStyle(bg, border, isActive ? 3 : 2, 12));
             panel.SelfModulate = isActive ? Colors.White : new Color(0.9f, 0.94f, 1f, 0.95f);
         }
 
@@ -684,21 +687,21 @@ public partial class ShopPanel : PanelContainer
         button.SetPressedNoSignal(isActive);
         button.AddThemeStyleboxOverride(
             "normal",
-            BuildButtonStyle(
+            UiTheme.BuildButtonStyle(
                 isActive ? new Color("2b5b87") : new Color("1d3d5c"),
                 isActive ? new Color("7ebef4") : new Color("476c90"),
                 2,
                 10));
         button.AddThemeStyleboxOverride(
             "hover",
-            BuildButtonStyle(
+            UiTheme.BuildButtonStyle(
                 isActive ? new Color("356d9f") : new Color("24496d"),
                 isActive ? new Color("a7dbff") : new Color("6d8fb1"),
                 2,
                 10));
         button.AddThemeStyleboxOverride(
             "pressed",
-            BuildButtonStyle(
+            UiTheme.BuildButtonStyle(
                 isActive ? new Color("224b71") : new Color("1a3856"),
                 isActive ? new Color("a7dbff") : new Color("6d8fb1"),
                 2,
@@ -706,16 +709,16 @@ public partial class ShopPanel : PanelContainer
         button.AddThemeColorOverride("font_color", isActive ? new Color("f5fcff") : new Color("d5e6fb"));
     }
 
-    public void CloseShop()
+    public void ClosePanel()
     {
         if (!Visible)
             return;
 
         Visible = false;
-        EmitSignal(SignalName.ShopClosed);
+        EmitSignal(SignalName.PanelClosed);
     }
 
-    public void OpenShop()
+    public void OpenPanel()
     {
         if (!IsInsideTree())
             return;
@@ -770,11 +773,44 @@ public partial class ShopPanel : PanelContainer
         if (_statusLabel != null && gm != null && !string.IsNullOrWhiteSpace(gm.LastEventText))
             _statusLabel.Text = gm.LastEventText;
 
-        if (forceRebuildPages || coins != _lastDisplayedCoins)
+        if (forceRebuildPages)
         {
-            _lastDisplayedCoins = coins;
             RefreshAllCategoryPages();
+            return;
         }
+
+        ApplyBuyButtonStates(gm);
+    }
+
+    private void ApplyBuyButtonStates(GameManager gm)
+    {
+        foreach (var pair in _buyCardsByCategory)
+        {
+            var cards = pair.Value;
+            for (var i = 0; i < cards.Count; i++)
+            {
+                var card = cards[i];
+                if (card.Value == null || !IsInstanceValid(card.Value))
+                    continue;
+
+                ApplyBuyButtonState(card.Value, card.Key, gm);
+            }
+        }
+    }
+
+    private void ApplyBuyButtonState(Button buyButton, ShopEntry entry, GameManager gm)
+    {
+        var canAfford = gm?.CanAfford(entry.Price) ?? false;
+        var validFishOffer = entry.Category != ShopCategory.Fish || ResolveFishTemplate(entry) != null;
+        var hasFishSlots = entry.Category != ShopCategory.Fish || (gm != null && gm.FishCount < gm.MaxFishCount);
+
+        buyButton.Disabled = !canAfford || !validFishOffer || !hasFishSlots;
+        if (!hasFishSlots)
+            buyButton.Text = BuyButtonNoSlotsText;
+        else if (!canAfford)
+            buyButton.Text = BuyButtonTooExpensiveText;
+        else
+            buyButton.Text = BuyButtonDefaultText;
     }
 
     private void RefreshAllCategoryPages()
@@ -803,6 +839,13 @@ public partial class ShopPanel : PanelContainer
             return;
         if (!_entriesByCategory.TryGetValue(category, out var entries))
             return;
+
+        if (!_buyCardsByCategory.TryGetValue(category, out var buyCards))
+        {
+            buyCards = new List<KeyValuePair<ShopEntry, Button>>();
+            _buyCardsByCategory[category] = buyCards;
+        }
+        buyCards.Clear();
 
         if (IsComingSoonCategory(category))
         {
@@ -841,7 +884,7 @@ public partial class ShopPanel : PanelContainer
         var startIndex = currentPage * ItemsPerPage;
         var endExclusive = Math.Min(startIndex + ItemsPerPage, entries.Count);
         for (var i = startIndex; i < endExclusive; i++)
-            view.Grid.AddChild(CreateCard(entries[i]));
+            view.Grid.AddChild(CreateCard(entries[i], buyCards));
 
         for (var i = endExclusive; i < startIndex + ItemsPerPage; i++)
         {
@@ -859,14 +902,14 @@ public partial class ShopPanel : PanelContainer
 
         view.SummaryLabel.Text = "\u041f\u043e\u043a\u0443\u043f\u043a\u0430: \u0440\u044b\u0431\u0430 \u0441\u0440\u0430\u0437\u0443 \u043f\u043e\u044f\u0432\u043b\u044f\u0435\u0442\u0441\u044f \u0432 \u0430\u043a\u0432\u0430\u0440\u0438\u0443\u043c\u0435";
     }
-    private Control CreateCard(ShopEntry entry)
+    private Control CreateCard(ShopEntry entry, List<KeyValuePair<ShopEntry, Button>> registry)
     {
         var card = new PanelContainer
         {
             CustomMinimumSize = new Vector2(126, 168),
             SizeFlagsHorizontal = SizeFlags.ExpandFill
         };
-        card.AddThemeStyleboxOverride("panel", BuildPanelStyle(new Color("173550"), new Color("3f658a"), 2, 8));
+        card.AddThemeStyleboxOverride("panel", UiTheme.BuildPanelStyle(new Color("173550"), new Color("3f658a"), 2, 8));
 
         var margin = new MarginContainer();
         margin.AddThemeConstantOverride("margin_left", 6);
@@ -929,28 +972,22 @@ public partial class ShopPanel : PanelContainer
 
         var buyButton = new Button
         {
-            Text = "\u043a\u0443\u043f\u0438\u0442\u044c",
+            Text = BuyButtonDefaultText,
             CustomMinimumSize = new Vector2(0, 28)
         };
-        buyButton.AddThemeStyleboxOverride("normal", BuildButtonStyle(new Color("4d833f"), new Color("8eb16a"), 2, 8));
-        buyButton.AddThemeStyleboxOverride("hover", BuildButtonStyle(new Color("5a9649"), new Color("b7d48f"), 2, 8));
-        buyButton.AddThemeStyleboxOverride("pressed", BuildButtonStyle(new Color("406f35"), new Color("b7d48f"), 2, 8));
-        buyButton.AddThemeStyleboxOverride("disabled", BuildButtonStyle(new Color("3a4f38"), new Color("576852"), 2, 8));
+        buyButton.AddThemeStyleboxOverride("normal", UiTheme.BuildButtonStyle(new Color("4d833f"), new Color("8eb16a"), 2, 8));
+        buyButton.AddThemeStyleboxOverride("hover", UiTheme.BuildButtonStyle(new Color("5a9649"), new Color("b7d48f"), 2, 8));
+        buyButton.AddThemeStyleboxOverride("pressed", UiTheme.BuildButtonStyle(new Color("406f35"), new Color("b7d48f"), 2, 8));
+        buyButton.AddThemeStyleboxOverride("disabled", UiTheme.BuildButtonStyle(new Color("3a4f38"), new Color("576852"), 2, 8));
         buyButton.AddThemeColorOverride("font_color", new Color("eaf4db"));
         buyButton.AddThemeFontSizeOverride("font_size", 17);
 
-        var gm = GameManager.Instance;
-        var canAfford = gm?.CanAfford(entry.Price) ?? false;
-        var validFishOffer = entry.Category != ShopCategory.Fish || ResolveFishTemplate(entry) != null;
-        var hasFishSlots = entry.Category != ShopCategory.Fish || (gm != null && gm.FishCount < gm.MaxFishCount);
-        buyButton.Disabled = !canAfford || !validFishOffer || !hasFishSlots;
-        if (!hasFishSlots)
-            buyButton.Text = "\u043b\u0438\u043c\u0438\u0442";
-        else if (!canAfford)
-            buyButton.Text = "\u0434\u043e\u0440\u043e\u0433\u043e";
+        ApplyBuyButtonState(buyButton, entry, GameManager.Instance);
 
         buyButton.Pressed += () => TryBuyEntry(entry);
         content.AddChild(buyButton);
+
+        registry?.Add(new KeyValuePair<ShopEntry, Button>(entry, buyButton));
 
         if (entry.Category != ShopCategory.Fish)
         {
@@ -1094,29 +1131,4 @@ public partial class ShopPanel : PanelContainer
         return null;
     }
 
-    private static StyleBoxFlat BuildPanelStyle(Color background, Color border, int borderWidth, int radius)
-    {
-        var style = new StyleBoxFlat
-        {
-            BgColor = background,
-            BorderColor = border,
-            CornerRadiusTopLeft = radius,
-            CornerRadiusTopRight = radius,
-            CornerRadiusBottomLeft = radius,
-            CornerRadiusBottomRight = radius
-        };
-
-        style.SetBorderWidthAll(borderWidth);
-        return style;
-    }
-
-    private static StyleBoxFlat BuildButtonStyle(Color background, Color border, int borderWidth, int radius)
-    {
-        var style = BuildPanelStyle(background, border, borderWidth, radius);
-        style.ContentMarginTop = 4;
-        style.ContentMarginBottom = 4;
-        style.ContentMarginLeft = 10;
-        style.ContentMarginRight = 10;
-        return style;
-    }
 }
