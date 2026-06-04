@@ -5,7 +5,7 @@ public partial class GameManager : Node
 {
     public static GameManager Instance { get; private set; }
 
-    public float Money { get; private set; } = 200f;
+    public float Money { get; private set; } = 300f;
     public int FishCount => _fishList.Count;
     public string LastEventText { get; private set; } = "";
 
@@ -29,6 +29,53 @@ public partial class GameManager : Node
     private readonly HashSet<FishData> _discoveredFish = new();
     private readonly Dictionary<string, FishData> _discoveredFishByName = new(System.StringComparer.OrdinalIgnoreCase);
     private readonly List<FishMutation> _mutations = new();
+    private readonly Dictionary<string, int> _foodInventory = new();
+    private readonly Dictionary<string, int> _decorInventory = new();
+    private readonly List<PlacedDecoration> _placedDecorations = new();
+    private int _extraFishCapacity = 0;
+
+    private sealed class PlacedDecoration
+    {
+        public DecorData Data;
+        public Vector2 Position;
+        public Sprite2D Sprite;
+    }
+
+    public int EffectiveMaxFishCount => MaxFishCount + _extraFishCapacity;
+    public int ExtraFishCapacity => _extraFishCapacity;
+
+    public void AddFishCapacity(int amount)
+    {
+        _extraFishCapacity = Mathf.Max(0, _extraFishCapacity + amount);
+    }
+
+    public int GetFishScore(Node2d fish)
+    {
+        if (fish?.Data == null) return 0;
+        var rarityScore = fish.Data.Rarity switch
+        {
+            FishRarity.Common => 1f,
+            FishRarity.Rare => 2f,
+            FishRarity.Unique => 5f,
+            _ => 1f
+        };
+        var stageScore = fish.CurrentStage switch
+        {
+            FishGrowthStage.Fry => 0.3f,
+            FishGrowthStage.Teen => 0.6f,
+            FishGrowthStage.Adult => 1.0f,
+            _ => 1.0f
+        };
+        return Mathf.RoundToInt(fish.Data.Price * rarityScore * stageScore);
+    }
+
+    public int GetAquariumScore()
+    {
+        var score = 0;
+        foreach (var fish in _fishList)
+            score += GetFishScore(fish);
+        return score;
+    }
 
     private Node2D _aquarium;
     private FishData[] _catalog = System.Array.Empty<FishData>();
@@ -47,6 +94,7 @@ public partial class GameManager : Node
 
     public override void _Ready()
     {
+        AddChild(new DecorPlacer());
         LoadMutations();
         Load();
     }
@@ -94,7 +142,10 @@ public partial class GameManager : Node
         _spawnAreaMin = spawnMin;
         _spawnAreaMax = spawnMax;
 
+        TryRestoreDecorSprites();
         TryRestoreFishFromSave();
+        if (_hasAutoFeeder) PlaceAutoFeeder();
+        CallDeferred(nameof(SetupBubbleParticles));
     }
 
     public void RegisterFish(Node2d fish)
@@ -125,9 +176,9 @@ public partial class GameManager : Node
     {
         if (data == null || data.FishScene == null)
             return false;
-        if (FishCount >= MaxFishCount)
+        if (FishCount >= EffectiveMaxFishCount)
         {
-            LastEventText = $"Fish limit reached ({MaxFishCount})";
+            LastEventText = $"Fish limit reached ({EffectiveMaxFishCount})";
             return false;
         }
 
@@ -150,9 +201,9 @@ public partial class GameManager : Node
     {
         if (data == null || data.FishScene == null || offerPrice < 0)
             return false;
-        if (FishCount >= MaxFishCount)
+        if (FishCount >= EffectiveMaxFishCount)
         {
-            LastEventText = $"Fish limit reached ({MaxFishCount})";
+            LastEventText = $"Fish limit reached ({EffectiveMaxFishCount})";
             return false;
         }
 
@@ -206,6 +257,55 @@ public partial class GameManager : Node
         return total;
     }
 
+    public bool TryBuyFood(FoodData data)
+    {
+        if (data == null || data.IsUnlimited)
+            return false;
+
+        if (!SpendMoney(data.Price))
+            return false;
+
+        var key = data.ResourcePath;
+        _foodInventory[key] = GetFoodCount(data) + data.BatchSize;
+        LastEventText = $"Куплено {data.BatchSize} порций: {data.FoodName}";
+        return true;
+    }
+
+    public int GetFoodCount(FoodData data)
+    {
+        if (data == null || data.IsUnlimited) return -1;
+        return _foodInventory.TryGetValue(data.ResourcePath, out var v) ? v : 0;
+    }
+
+    public bool CanUseFood(FoodData data)
+    {
+        if (data == null) return false;
+        if (data.IsUnlimited) return true;
+        return GetFoodCount(data) > 0;
+    }
+
+    public System.Collections.Generic.IReadOnlyList<(FoodData Food, int Count)> GetFoodInventorySnapshot(FoodData[] catalog)
+    {
+        var result = new System.Collections.Generic.List<(FoodData, int)>();
+        if (catalog == null) return result;
+        foreach (var food in catalog)
+        {
+            if (food == null || food.IsUnlimited) continue;
+            var count = GetFoodCount(food);
+            if (count > 0) result.Add((food, count));
+        }
+        return result;
+    }
+
+    public void ConsumeFood(FoodData data)
+    {
+        if (data == null || data.IsUnlimited) return;
+        var key = data.ResourcePath;
+        var current = GetFoodCount(data);
+        if (current > 0)
+            _foodInventory[key] = current - 1;
+    }
+
     public bool CanAfford(float amount) => amount <= Money;
 
     public int GetFishCountByRarity(FishRarity rarity)
@@ -237,6 +337,197 @@ public partial class GameManager : Node
         }
 
         return (common, rare, unique);
+    }
+
+    public bool HasAnyPredator()
+    {
+        foreach (var fish in _fishList)
+            if (fish != null && fish.IsPredator)
+                return true;
+        return false;
+    }
+
+    // ── Автокормушка ──────────────────────────────────────────────────────────
+
+    private bool _hasAutoFeeder;
+    private AutoFeeder _autoFeeder;
+
+    public bool HasAutoFeeder => _hasAutoFeeder;
+
+    public bool TryBuyAutoFeeder()
+    {
+        if (_hasAutoFeeder) return false;
+        if (!SpendMoney(1000)) return false;
+        _hasAutoFeeder = true;
+        LastEventText = "Куплено: Автокормушка";
+        PlaceAutoFeeder();
+        return true;
+    }
+
+    private void PlaceAutoFeeder()
+    {
+        if (_aquarium == null) return;
+        if (_autoFeeder != null && IsInstanceValid(_autoFeeder)) return;
+
+        var fd = FoodDropper.Instance;
+        var x = (fd?.AquariumLeft ?? 42f) + 48f;
+        var y = (fd?.AquariumTop ?? 95f) + 130f;
+
+        _autoFeeder = new AutoFeeder { Position = new Vector2(x, y), ZIndex = 2 };
+        _aquarium.AddChild(_autoFeeder);
+    }
+
+    public bool TryBuyDecor(DecorData data)
+    {
+        if (data == null) return false;
+        if (!SpendMoney(data.Price)) return false;
+        _decorInventory[data.ResourcePath] = GetDecorCount(data) + 1;
+        LastEventText = $"Куплено: {data.DecorName}";
+        return true;
+    }
+
+    public int GetDecorCount(DecorData data)
+    {
+        if (data == null || string.IsNullOrEmpty(data.ResourcePath)) return 0;
+        return _decorInventory.TryGetValue(data.ResourcePath, out var v) ? v : 0;
+    }
+
+    public bool PlaceDecor(DecorData data, Vector2 position)
+    {
+        if (data == null || GetDecorCount(data) <= 0) return false;
+        _decorInventory[data.ResourcePath] = GetDecorCount(data) - 1;
+        var sprite = CreateDecorSprite(data, position);
+        _placedDecorations.Add(new PlacedDecoration { Data = data, Position = position, Sprite = sprite });
+        return true;
+    }
+
+    public bool RemovePlacedDecor(int index)
+    {
+        if (index < 0 || index >= _placedDecorations.Count) return false;
+        var pd = _placedDecorations[index];
+        pd.Sprite?.QueueFree();
+        _placedDecorations.RemoveAt(index);
+        _decorInventory[pd.Data.ResourcePath] = GetDecorCount(pd.Data) + 1;
+        return true;
+    }
+
+    public float GetDecorHappinessBonus()
+    {
+        var total = 0f;
+        foreach (var pd in _placedDecorations)
+            if (pd.Data != null) total += pd.Data.HappinessBonus;
+        return Mathf.Min(total, 30f);
+    }
+
+    public System.Collections.Generic.IReadOnlyList<(DecorData Decor, int Count)> GetDecorInventorySnapshot(DecorData[] catalog)
+    {
+        var result = new System.Collections.Generic.List<(DecorData, int)>();
+        if (catalog == null) return result;
+        foreach (var d in catalog)
+        {
+            if (d == null) continue;
+            var count = GetDecorCount(d);
+            if (count > 0) result.Add((d, count));
+        }
+        return result;
+    }
+
+    public System.Collections.Generic.IReadOnlyList<(DecorData Data, Vector2 Position, int Index)> GetPlacedDecors()
+    {
+        var result = new System.Collections.Generic.List<(DecorData, Vector2, int)>(_placedDecorations.Count);
+        for (var i = 0; i < _placedDecorations.Count; i++)
+            result.Add((_placedDecorations[i].Data, _placedDecorations[i].Position, i));
+        return result;
+    }
+
+    private Sprite2D CreateDecorSprite(DecorData data, Vector2 position)
+    {
+        if (_aquarium == null) return null;
+        var tex = data.DecorTexture ?? CreatePlaceholderTexture(new Color(0.35f, 0.6f, 0.9f, 0.85f));
+        var sprite = new Sprite2D { Texture = tex, Position = position, Scale = data.DisplayScale, ZIndex = data.PlacementZIndex,
+            Modulate = new Color(0.72f, 0.78f, 0.88f, 1f) };
+        _aquarium.AddChild(sprite);
+        return sprite;
+    }
+
+    private static Texture2D CreatePlaceholderTexture(Color color, int size = 64)
+    {
+        var img = Image.CreateEmpty(size, size, false, Image.Format.Rgba8);
+        img.Fill(color);
+        return ImageTexture.CreateFromImage(img);
+    }
+
+    private void SetupBubbleParticles()
+    {
+        if (_aquarium == null || _aquarium.FindChild("BubbleParticles") != null) return;
+
+        var fd = FoodDropper.Instance;
+        var left   = fd?.AquariumLeft   ?? 42f;
+        var right  = fd?.AquariumRight  ?? 1395f;
+        var top    = fd?.AquariumTop    ?? 95f;
+        var bottom = fd?.AquariumBottom ?? 640f;
+
+        var width   = right - left;
+        var height  = bottom - top;
+        var centerX = (left + right) * 0.5f;
+        var lifetime = height / 55f; // ~9.9 сек от дна до верха при средней скорости
+
+        var mat = new ParticleProcessMaterial();
+        mat.Direction         = new Vector3(0f, -1f, 0f);
+        mat.Spread            = 10f;
+        mat.InitialVelocityMin = 40f;
+        mat.InitialVelocityMax = 90f;
+        mat.Gravity           = Vector3.Zero;
+        mat.ScaleMin          = 0.7f;
+        mat.ScaleMax          = 2.0f;
+        mat.Color             = new Color(0.75f, 0.9f, 1f, 0.55f);
+        mat.EmissionShape     = ParticleProcessMaterial.EmissionShapeEnum.Box;
+        mat.EmissionBoxExtents = new Vector3(width * 0.5f, 2f, 0f);
+
+        var gradient = new Gradient();
+        gradient.SetColor(0, new Color(0.8f, 0.93f, 1f, 0.6f));
+        gradient.SetColor(1, new Color(0.8f, 0.93f, 1f, 0f));
+        mat.ColorRamp = new GradientTexture1D { Gradient = gradient };
+
+        var particles = new GpuParticles2D
+        {
+            Name        = "BubbleParticles",
+            Position    = new Vector2(centerX, bottom - 5f),
+            Amount      = 55,
+            Lifetime    = lifetime,
+            Preprocess  = lifetime * 0.8f,
+            LocalCoords = false,
+            ProcessMaterial = mat,
+            Texture     = CreateBubbleTexture(16),
+            ZIndex      = 1
+        };
+
+        _aquarium.AddChild(particles);
+    }
+
+    private static Texture2D CreateBubbleTexture(int size)
+    {
+        var img = Image.CreateEmpty(size, size, false, Image.Format.Rgba8);
+        var c = size / 2f;
+        var r = c - 0.5f;
+        for (var y = 0; y < size; y++)
+        for (var x = 0; x < size; x++)
+        {
+            var dx = x - c + 0.5f;
+            var dy = y - c + 0.5f;
+            var t  = Mathf.Clamp(1f - Mathf.Sqrt(dx * dx + dy * dy) / r, 0f, 1f);
+            img.SetPixel(x, y, new Color(1f, 1f, 1f, t * t));
+        }
+        return ImageTexture.CreateFromImage(img);
+    }
+
+    private void TryRestoreDecorSprites()
+    {
+        foreach (var pd in _placedDecorations)
+        {
+            if (pd.Sprite != null && IsInstanceValid(pd.Sprite)) continue;
+            pd.Sprite = CreateDecorSprite(pd.Data, pd.Position);
+        }
     }
 
     public IReadOnlyList<Node2d> GetFishSnapshot()
@@ -340,6 +631,7 @@ public partial class GameManager : Node
         };
 
         income *= fish.GetIncomeMultiplier();
+        income *= fish.GetHappinessMultiplier();
 
         return Mathf.Clamp(income, 0f, Mathf.Max(0f, MaxIncomePerFishPerSec));
     }
@@ -448,7 +740,7 @@ public partial class GameManager : Node
 
     private void EvaluateMeetings()
     {
-        if (_fishList.Count < 2 || FishCount >= MaxFishCount)
+        if (_fishList.Count < 2 || FishCount >= EffectiveMaxFishCount)
             return;
 
         var meetingDistanceSq = MeetingDistance * MeetingDistance;
@@ -477,7 +769,7 @@ public partial class GameManager : Node
 
     private bool TryBreedByMeeting(Node2d parentA, Node2d parentB, Vector2 contactPos)
     {
-        if (_aquarium == null || FishCount >= MaxFishCount)
+        if (_aquarium == null || FishCount >= EffectiveMaxFishCount)
             return false;
 
         if (!CanBreed(parentA) || !CanBreed(parentB))
@@ -486,7 +778,10 @@ public partial class GameManager : Node
         if (!AreCompatible(parentA.Data, parentB.Data))
             return false;
 
-        if (GD.Randf() > BreedChanceOnContact)
+        var breedChance = BreedChanceOnContact
+            + parentA.BreedChanceBonus
+            + parentB.BreedChanceBonus;
+        if (GD.Randf() > breedChance)
             return false;
 
         var spawnPos = ClampToSpawnArea(contactPos + new Vector2(
@@ -514,6 +809,9 @@ public partial class GameManager : Node
 
         if (spawned == null)
             return false;
+
+        parentA.OnBreedSuccess();
+        parentB.OnBreedSuccess();
 
         var nextTime = _elapsedSec + ParentBreedCooldownSec;
         _nextBreedAtSec[parentA] = nextTime;
@@ -624,7 +922,7 @@ public partial class GameManager : Node
 
     private Node2d SpawnFish(FishData data, bool startAsFry, Vector2 spawnPos, string customFishName = null)
     {
-        if (_aquarium == null || data == null || data.FishScene == null || FishCount >= MaxFishCount)
+        if (_aquarium == null || data == null || data.FishScene == null || FishCount >= EffectiveMaxFishCount)
             return null;
 
         var fishNode = data.FishScene.Instantiate<Node2D>();
@@ -654,7 +952,7 @@ public partial class GameManager : Node
 
     private Node2d SpawnHybridFish(FishData momData, FishData dadData, Vector2 spawnPos)
     {
-        if (_aquarium == null || FishCount >= MaxFishCount)
+        if (_aquarium == null || FishCount >= EffectiveMaxFishCount)
             return null;
 
         if (momData?.FishScene == null)
@@ -719,7 +1017,6 @@ public partial class GameManager : Node
     private void OnFishClicked(Node2d fish)
     {
         var hud = GetTree().CurrentScene.GetNodeOrNull<Hud>("UI/HUD");
-
         hud?.OnFishClicked(fish);
     }
 
@@ -731,6 +1028,7 @@ public partial class GameManager : Node
         var config = new ConfigFile();
         config.SetValue("meta", "version", 1);
         config.SetValue("economy", "money", Money);
+        config.SetValue("economy", "extra_fish_capacity", _extraFishCapacity);
 
         var fishArray = new Godot.Collections.Array();
         foreach (var fish in _fishList)
@@ -786,6 +1084,31 @@ public partial class GameManager : Node
             ownedDict[pair.Key] = pair.Value;
         config.SetValue("owned", "items", ownedDict);
 
+        var foodDict = new Godot.Collections.Dictionary();
+        foreach (var pair in _foodInventory)
+            if (pair.Value > 0)
+                foodDict[pair.Key] = pair.Value;
+        config.SetValue("food", "inventory", foodDict);
+
+        var decorInvDict = new Godot.Collections.Dictionary();
+        foreach (var pair in _decorInventory)
+            if (pair.Value > 0) decorInvDict[pair.Key] = pair.Value;
+        config.SetValue("decor", "inventory", decorInvDict);
+
+        var placedDecorArray = new Godot.Collections.Array();
+        foreach (var pd in _placedDecorations)
+        {
+            if (pd.Data == null || string.IsNullOrEmpty(pd.Data.ResourcePath)) continue;
+            placedDecorArray.Add(new Godot.Collections.Dictionary
+            {
+                ["path"] = pd.Data.ResourcePath,
+                ["x"] = pd.Position.X,
+                ["y"] = pd.Position.Y
+            });
+        }
+        config.SetValue("decor", "placed", placedDecorArray);
+
+        config.SetValue("autofeeder", "purchased", _hasAutoFeeder);
         config.SetValue("settings", "brightness", SettingsPanel.SavedBrightness);
         config.SetValue("settings", "sound", SettingsPanel.SavedSound);
 
@@ -804,7 +1127,41 @@ public partial class GameManager : Node
             return;
         }
 
-        Money = (float)(double)config.GetValue("economy", "money", (double)Money);
+        if (config.HasSectionKey("autofeeder", "purchased"))
+            _hasAutoFeeder = config.GetValue("autofeeder", "purchased").AsBool();
+
+        Money = Mathf.Max(300f, (float)(double)config.GetValue("economy", "money", 300.0));
+        if (config.HasSectionKey("economy", "extra_fish_capacity"))
+            _extraFishCapacity = config.GetValue("economy", "extra_fish_capacity").AsInt32();
+
+        if (config.HasSectionKey("food", "inventory"))
+        {
+            var foodVar = config.GetValue("food", "inventory").AsGodotDictionary();
+            foreach (var key in foodVar.Keys)
+                _foodInventory[key.AsString()] = foodVar[key].AsInt32();
+        }
+
+        if (config.HasSectionKey("decor", "inventory"))
+        {
+            var decorInvVar = config.GetValue("decor", "inventory").AsGodotDictionary();
+            foreach (var key in decorInvVar.Keys)
+                _decorInventory[key.AsString()] = decorInvVar[key].AsInt32();
+        }
+
+        if (config.HasSectionKey("decor", "placed"))
+        {
+            foreach (var item in config.GetValue("decor", "placed").AsGodotArray())
+            {
+                var dict = item.AsGodotDictionary();
+                var data = GD.Load<DecorData>(dict["path"].AsString());
+                if (data == null) continue;
+                _placedDecorations.Add(new PlacedDecoration
+                {
+                    Data = data,
+                    Position = new Vector2((float)dict["x"].AsDouble(), (float)dict["y"].AsDouble())
+                });
+            }
+        }
 
         SettingsPanel.SavedBrightness = (float)(double)config.GetValue("settings", "brightness", 50.0);
         SettingsPanel.SavedSound = (float)(double)config.GetValue("settings", "sound", 80.0);

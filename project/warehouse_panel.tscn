@@ -1,0 +1,82 @@
+[gd_scene format=3 uid="uid://b4s3wrb2wn4jq"]
+
+[ext_resource type="Script" uid="uid://dnir548em2j5n" path="res://WarehousePanel.cs" id="1_v3q11"]
+[ext_resource type="PackedScene" uid="uid://1it8sx1datg0" path="res://warehouse_item.tscn" id="2_nroa3"]
+[ext_resource type="Resource" uid="uid://cfrhm52ck0n28" path="res://assets/meal/basic_food.tres" id="3_1ebll"]
+[ext_resource type="Resource" uid="uid://vgyadvjuk5jw" path="res://assets/meal/food_breeding.tres" id="4_afhwh"]
+[ext_resource type="Resource" uid="uid://m35elmjo5sw1" path="res://assets/meal/food_growth.tres" id="5_qhwwk"]
+[ext_resource type="Resource" uid="uid://djlq8axorib7k" path="res://assets/meal/food_hearty.tres" id="6_yeshx"]
+
+[node name="WarehousePanel" type="PanelContainer" unique_id=1091312781 node_paths=PackedStringArray("ItemGrid", "CloseBtn", "FoodFilterBtn", "DecorFilterBtn", "EmptyLabel")]
+custom_minimum_size = Vector2(600, 500)
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -250.0
+offset_top = -200.0
+offset_right = 250.0
+offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_v3q11")
+ItemGrid = NodePath("MarginContainer/VBoxContainer/ScrollContainer/ItemGrid")
+WarehouseItemScene = ExtResource("2_nroa3")
+CloseBtn = NodePath("MarginContainer/VBoxContainer/HBoxContainer/CloseBtn")
+FoodFilterBtn = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/FoodFilterBtn")
+DecorFilterBtn = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/DecorFilterBtn")
+EmptyLabel = NodePath("MarginContainer/VBoxContainer/EmptyLabel")
+AvailableFoods = Array[Object]([ExtResource("3_1ebll"), ExtResource("4_afhwh"), ExtResource("5_qhwwk"), ExtResource("6_yeshx")])
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=375842880]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=1878501643]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=433439759]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=1844336710]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 28
+text = "СКЛАД"
+horizontal_alignment = 1
+
+[node name="CloseBtn" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=36838881]
+custom_minimum_size = Vector2(45, 30)
+layout_mode = 2
+text = "X"
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=1916941469]
+layout_mode = 2
+
+[node name="FoodFilterBtn" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=792498063]
+layout_mode = 2
+toggle_mode = true
+text = "Еда"
+
+[node name="DecorFilterBtn" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=850201119]
+layout_mode = 2
+toggle_mode = true
+text = "Декор"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer" unique_id=1638281164]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ItemGrid" type="GridContainer" parent="MarginContainer/VBoxContainer/ScrollContainer" unique_id=973559807]
+layout_mode = 2
+columns = 3
+
+[node name="EmptyLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1389969940]
+visible = false
+layout_mode = 2
+text = "Пусто"
+horizontal_alignment = 1

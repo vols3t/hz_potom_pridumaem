@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://wjrqukuww05" path="res://FishInfoPanel.cs" id="1_p5ep6"]
 
-[node name="FishInfoPanel" type="PanelContainer" unique_id=1718378493 node_paths=PackedStringArray("NameEdit", "RenameBtn", "SpeciesLabel", "StageLabel", "AgeLabel", "IncomeLabel", "HungerLabel", "MutationsTitle", "MutationsList", "CloseBtn")]
+[node name="FishInfoPanel" type="PanelContainer" unique_id=1718378493 node_paths=PackedStringArray("NameEdit", "RenameBtn", "SpeciesLabel", "StageLabel", "AgeLabel", "IncomeLabel", "ScoreLabel", "HungerLabel", "MutationsTitle", "MutationsList", "CloseBtn")]
 custom_minimum_size = Vector2(250, 0)
 offset_right = 141.0
 offset_bottom = 63.0
@@ -13,6 +13,7 @@ SpeciesLabel = NodePath("MarginContainer/VBoxContainer/SpeciesLabel")
 StageLabel = NodePath("MarginContainer/VBoxContainer/StageLabel")
 AgeLabel = NodePath("MarginContainer/VBoxContainer/AgeLabel")
 IncomeLabel = NodePath("MarginContainer/VBoxContainer/IncomeLabel")
+ScoreLabel = NodePath("MarginContainer/VBoxContainer/ScoreLabel")
 HungerLabel = NodePath("MarginContainer/VBoxContainer/HungerLabel")
 MutationsTitle = NodePath("MarginContainer/VBoxContainer/MutationsTitle")
 MutationsList = NodePath("MarginContainer/VBoxContainer/MutationsList")
@@ -55,6 +56,9 @@ layout_mode = 2
 layout_mode = 2
 
 [node name="IncomeLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1189329438]
+layout_mode = 2
+
+[node name="ScoreLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1189329439]
 layout_mode = 2
 
 [node name="HungerLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=938532303]

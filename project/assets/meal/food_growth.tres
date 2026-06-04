@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="FoodData" format=3 uid="uid://m35elmjo5sw1"]
+
+[ext_resource type="Script" uid="uid://ddec14vk7oag0" path="res://FoodData.cs" id="1_dfbyw"]
+[ext_resource type="Texture2D" uid="uid://xrmf1xjno7ba" path="res://assets/meal/food_growth.png" id="1_f12sw"]
+[ext_resource type="Texture2D" uid="uid://bf6hv605vplxk" path="res://assets/meal/p_growth.png" id="2_dvd3f"]
+
+[resource]
+script = ExtResource("1_dfbyw")
+FoodName = "Волшебный корм"
+Description = "Ускоряет взросление рыбок на 30 сек"
+Price = 120
+ParticleCount = 6
+FallSpeed = 25.0
+Icon = ExtResource("1_f12sw")
+ParticleTexture = ExtResource("2_dvd3f")
+ParticleColor = Color(1, 1, 1, 1)
+GrowthMultiplier = 3.0

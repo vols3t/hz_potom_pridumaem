@@ -1,0 +1,46 @@
+[gd_scene format=3 uid="uid://1it8sx1datg0"]
+
+[ext_resource type="Script" uid="uid://ra368je5eljk" path="res://WarehouseItem.cs" id="1_4encg"]
+
+[node name="warehouse_item" type="PanelContainer" unique_id=2007496655 node_paths=PackedStringArray("IconRect", "NameLabel", "CountLabel", "UseButton")]
+custom_minimum_size = Vector2(140, 150)
+anchors_preset = -1
+anchor_right = 0.097
+anchor_bottom = 0.20700002
+offset_right = -99.48601
+offset_bottom = -139.67601
+script = ExtResource("1_4encg")
+IconRect = NodePath("MarginContainer/VBoxContainer/IconRect")
+NameLabel = NodePath("MarginContainer/VBoxContainer/NameLabel")
+CountLabel = NodePath("MarginContainer/VBoxContainer/CountLabel")
+UseButton = NodePath("MarginContainer/VBoxContainer/UseBtn")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=1069367906]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=608641743]
+layout_mode = 2
+
+[node name="IconRect" type="TextureRect" parent="MarginContainer/VBoxContainer" unique_id=158611426]
+custom_minimum_size = Vector2(80, 60)
+layout_mode = 2
+expand_mode = 3
+stretch_mode = 5
+
+[node name="NameLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1804235989]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="CountLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=730805760]
+layout_mode = 2
+
+[node name="UseBtn" type="Button" parent="MarginContainer/VBoxContainer" unique_id=1349995892]
+layout_mode = 2
+text = "Использовать"

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="DecorData" format=3 uid="uid://doowd742l4vrs"]
+
+[ext_resource type="Texture2D" uid="uid://btpqae5jksktf" path="res://assets/decor/decor_tree.png" id="1_hskky"]
+[ext_resource type="Script" uid="uid://dtrjefts3n3i8" path="res://DecorData.cs" id="2_nf2w4"]
+
+[resource]
+script = ExtResource("2_nf2w4")
+DecorId = "driftwood"
+DecorName = "Старая коряга"
+Description = "Кусок затопленной древесины — идеальное убежище для рыбок и украшение дна."
+Icon = ExtResource("1_hskky")
+DecorTexture = ExtResource("1_hskky")
+Price = 220
+HappinessBonus = 6.0
+DisplayScale = Vector2(1, 1)
+PlacementZIndex = -1

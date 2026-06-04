@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="FoodData" format=3 uid="uid://vgyadvjuk5jw"]
+
+[ext_resource type="Script" uid="uid://ddec14vk7oag0" path="res://FoodData.cs" id="1_dfbyw"]
+[ext_resource type="Texture2D" uid="uid://ccxjichnq5stv" path="res://assets/meal/food_breeding.png" id="1_l1dlk"]
+[ext_resource type="Texture2D" uid="uid://da77x8tobhc47" path="res://assets/meal/p_breeding.png" id="2_nljyb"]
+
+[resource]
+script = ExtResource("1_dfbyw")
+FoodName = " Любовный корм"
+Description = "Особая смесь — повышает шанс размножения на 30 сек"
+Price = 150
+ParticleCount = 4
+FallSpeed = 28.0
+Icon = ExtResource("1_l1dlk")
+ParticleTexture = ExtResource("2_nljyb")
+ParticleColor = Color(0.9, 0.4, 0.8, 1)
+BreedChanceBonus = 0.3

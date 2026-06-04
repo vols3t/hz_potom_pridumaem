@@ -8,6 +8,7 @@ public partial class FishInfoPanel : PanelContainer
     [Export] public Label StageLabel;
     [Export] public Label AgeLabel;
     [Export] public Label IncomeLabel;
+    [Export] public Label ScoreLabel;
     [Export] public Label HungerLabel;
     [Export] public Label MutationsTitle;
     [Export] public VBoxContainer MutationsList;
@@ -111,28 +112,24 @@ public partial class FishInfoPanel : PanelContainer
             IncomeLabel.Text = $"{Localization.T("Income")}: +{income:F1}/\u0441\u0435\u043a";
         }
 
+        if (ScoreLabel != null)
+        {
+            var gm = GameManager.Instance;
+            var fishScore = gm?.GetFishScore(fish) ?? 0;
+            ScoreLabel.Text = $"Очки: {fishScore}";
+        }
+
         if (HungerLabel != null)
         {
-            string hungerKey;
-            string hungerEmoji;
-
-            if (fish.TimeSinceLastFed < 15f)
-            {
-                hungerKey = "Fed";
-                hungerEmoji = "\U0001F7E2";
-            }
-            else if (fish.TimeSinceLastFed < 60f)
-            {
-                hungerKey = "Hungry";
-                hungerEmoji = "\U0001F7E1";
-            }
-            else
-            {
-                hungerKey = "Starving";
-                hungerEmoji = "\U0001F534";
-            }
-
-            HungerLabel.Text = $"{Localization.T("Hunger")}: {hungerEmoji} {Localization.T(hungerKey)}";
+            var happiness = fish.Happiness;
+            var emoji = happiness >= 70f ? "😊" : happiness >= 40f ? "😐" : "😢";
+            HungerLabel.Text = $"Счастье: {happiness:F0}/100 {emoji}";
+            HungerLabel.AddThemeColorOverride("font_color", happiness >= 70f
+                ? new Color(0.3f, 0.9f, 0.3f)
+                : happiness >= 40f
+                    ? new Color(1f, 0.8f, 0.2f)
+                    : new Color(0.9f, 0.3f, 0.3f));
+            HungerLabel.Visible = true;
         }
 
         UpdateMutationsList();

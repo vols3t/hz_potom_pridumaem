@@ -4,5 +4,7 @@
 
 [resource]
 script = ExtResource("1_dfbyw")
+Description = "Дешево и сердито"
 NutritionValue = 2.0
 ParticleCount = 4
+IsUnlimited = true

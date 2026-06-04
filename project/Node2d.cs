@@ -39,6 +39,7 @@ public partial class Node2d : CharacterBody2D
     public bool IsPredator { get; private set; } = false;
     public float FoodEaten { get; private set; } = 0f;
     public float TimeSinceLastFed { get; private set; } = 0f;
+    public float Happiness { get; private set; } = 50f;
     public FishData ParentA { get; private set; }
 
     public FishData ParentB { get; private set; }
@@ -134,7 +135,22 @@ public partial class Node2d : CharacterBody2D
         var d = (float)delta;
         AdvanceGrowth(d);
         ProcessHunger(d);
+        UpdateHappiness(d);
         SeekFood(d);
+        QueueRedraw();
+    }
+
+    public override void _Draw()
+    {
+        Color color;
+        if (TimeSinceLastFed < 20f)
+            color = new Color(0.2f, 0.9f, 0.2f);
+        else if (TimeSinceLastFed < 70f)
+            color = new Color(1f, 0.8f, 0f);
+        else
+            color = new Color(0.9f, 0.15f, 0.15f);
+
+        DrawCircle(new Vector2(0f, -50f), 6f, color);
     }
 
     public override void _PhysicsProcess(double delta)
@@ -430,6 +446,46 @@ public partial class Node2d : CharacterBody2D
 
         if (_eatCooldownTimer > 0f)
             _eatCooldownTimer -= delta;
+
+        if (_breedBonusTimer > 0f)
+        {
+            _breedBonusTimer -= delta;
+            if (_breedBonusTimer <= 0f)
+                BreedChanceBonus = 0f;
+        }
+
+        if (_growthBoostTimer > 0f)
+        {
+            _growthBoostTimer -= delta;
+            if (_growthBoostTimer <= 0f)
+                _growthBoostMult = 1f;
+        }
+    }
+
+    private void UpdateHappiness(float delta)
+    {
+        var target = 50f;
+
+        if (TimeSinceLastFed < 20f) target += 20f;
+        else if (TimeSinceLastFed > 60f) target -= 30f;
+
+        if (!IsPredator && (GameManager.Instance?.HasAnyPredator() ?? false))
+            target -= 40f;
+
+        target += GameManager.Instance?.GetDecorHappinessBonus() ?? 0f;
+
+        target = Mathf.Clamp(target, 0f, 100f);
+        Happiness = Mathf.Clamp(Mathf.MoveToward(Happiness, target, delta * 3f), 0f, 100f);
+    }
+
+    public void OnBreedSuccess()
+    {
+        Happiness = Mathf.Min(100f, Happiness + 25f);
+    }
+
+    public float GetHappinessMultiplier()
+    {
+        return 0.5f + (Happiness / 100f) * 0.7f;
     }
 
     private void EatFish(Node2d prey)
@@ -448,7 +504,7 @@ public partial class Node2d : CharacterBody2D
         if (Data == null)
             return;
 
-        AgeSec += delta;
+        AgeSec += delta * _growthBoostMult;
 
         if (CurrentStage == FishGrowthStage.Fry && AgeSec >= Data.FryDurationSec)
             SetStage(FishGrowthStage.Teen);
@@ -670,7 +726,7 @@ public partial class Node2d : CharacterBody2D
         {
             _isSeekingFood = false;
             _targetFood = null;
-            return false;
+            return MoveTowardsFeeder();
         }
 
         var dirToFood = GlobalPosition.DirectionTo(_targetFood.GlobalPosition);
@@ -686,8 +742,23 @@ public partial class Node2d : CharacterBody2D
         return true;
     }
 
+    private bool MoveTowardsFeeder()
+    {
+        var feeder = AutoFeeder.Instance;
+        if (feeder == null || TimeSinceLastFed < 25f) return false;
+
+        var dir = GlobalPosition.DirectionTo(feeder.GlobalPosition);
+        _direction = dir;
+        ApplyVisualDirection(_direction);
+        return true;
+    }
+
 
     public float OverfedAmount { get; private set; } = 0f;
+    public float BreedChanceBonus { get; private set; } = 0f;
+    private float _breedBonusTimer = 0f;
+    private float _growthBoostMult = 1f;
+    private float _growthBoostTimer = 0f;
 
     private void EatFood(FoodParticle food)
     {
@@ -704,6 +775,18 @@ public partial class Node2d : CharacterBody2D
         {
             OverfedAmount += food.NutritionValue;
             GD.Print($"[Overfed] {FishName}: {OverfedAmount:F0}");
+        }
+
+        if (food.BreedChanceBonus > 0f)
+        {
+            BreedChanceBonus = food.BreedChanceBonus;
+            _breedBonusTimer = food.BoostDurationSec;
+        }
+
+        if (food.GrowthMultiplier > 1f)
+        {
+            _growthBoostMult = food.GrowthMultiplier;
+            _growthBoostTimer = food.BoostDurationSec;
         }
 
         var cooldown = Mathf.Min(BaseEatCooldown + _satiation * 0.08f, 2.5f);

@@ -67,6 +67,15 @@ public partial class FoodDropper : Node
         _selectedFood = food;
         _isDropMode = true;
 
+        if (food.Icon != null)
+        {
+            const int CursorSize = 32;
+            var img = food.Icon.GetImage();
+            img.Resize(CursorSize, CursorSize, Image.Interpolation.Nearest);
+            var cursorTex = ImageTexture.CreateFromImage(img);
+            Input.SetCustomMouseCursor(cursorTex, Input.CursorShape.Arrow, new Vector2(CursorSize * 0.5f, CursorSize * 0.5f));
+        }
+
         GD.Print($"[Food] Drop mode ON: {food.FoodName}. Click inside aquarium!");
     }
 
@@ -74,6 +83,7 @@ public partial class FoodDropper : Node
     {
         _isDropMode = false;
         _selectedFood = null;
+        Input.SetCustomMouseCursor(null);
         GD.Print("[Food] Drop mode OFF");
     }
 
@@ -84,6 +94,19 @@ public partial class FoodDropper : Node
         && pos.X <= AquariumRight
         && pos.Y >= AquariumTop
         && pos.Y <= AquariumBottom;
+
+    public void SpawnFoodAt(FoodData food, Vector2 dropPosition)
+    {
+        if (FoodParticleScene == null || _aquarium == null || food == null) return;
+        for (var i = 0; i < food.ParticleCount; i++)
+        {
+            var particle = FoodParticleScene.Instantiate<FoodParticle>();
+            var offset = new Vector2((float)GD.RandRange(-25, 25), (float)GD.RandRange(-5, 5));
+            particle.Position = dropPosition + offset;
+            particle.Setup(food, AquariumBottom - FloorOffset);
+            _aquarium.AddChild(particle);
+        }
+    }
 
     private void DropFood(Vector2 dropPosition)
     {
@@ -105,6 +128,7 @@ public partial class FoodDropper : Node
             _aquarium.AddChild(particle);
         }
 
+        GameManager.Instance?.ConsumeFood(_selectedFood);
         GD.Print($"[Food] Dropped {_selectedFood.ParticleCount} particles of {_selectedFood.FoodName}");
     }
 }

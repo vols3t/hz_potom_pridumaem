@@ -11,6 +11,7 @@ public partial class ShopPanel : PanelContainer
     [ExportCategory("Item Setup")]
     [Export] public PackedScene ShopItemScene;
     [Export] public FishData[] AvailableFish;
+    [Export] public FoodData[] AvailableFoods;
 
     // Legacy exports are kept for scene compatibility.
     [ExportCategory("UI References")]
@@ -41,6 +42,10 @@ public partial class ShopPanel : PanelContainer
         public readonly Texture2D Icon;
         public readonly string Details;
         public readonly FishData FishTemplate;
+        public readonly FoodData FoodTemplate;
+        public readonly DecorData DecorTemplate;
+        public readonly int CapacityBonus;
+        public readonly bool IsAutoFeeder;
 
         public ShopEntry(
             ShopCategory category,
@@ -50,7 +55,11 @@ public partial class ShopPanel : PanelContainer
             int price,
             Texture2D icon,
             string details,
-            FishData fishTemplate = null)
+            FishData fishTemplate = null,
+            int capacityBonus = 0,
+            FoodData foodTemplate = null,
+            DecorData decorTemplate = null,
+            bool isAutoFeeder = false)
         {
             Category = category;
             Id = id;
@@ -60,6 +69,10 @@ public partial class ShopPanel : PanelContainer
             Icon = icon;
             Details = details;
             FishTemplate = fishTemplate;
+            CapacityBonus = capacityBonus;
+            FoodTemplate = foodTemplate;
+            DecorTemplate = decorTemplate;
+            IsAutoFeeder = isAutoFeeder;
         }
     }
 
@@ -198,12 +211,114 @@ public partial class ShopPanel : PanelContainer
 
     private List<ShopEntry> BuildFoodCatalog()
     {
-        return new List<ShopEntry>();
+        var entries = new List<ShopEntry>();
+        if (AvailableFoods == null) return entries;
+
+        for (var i = 0; i < AvailableFoods.Length; i++)
+        {
+            var food = AvailableFoods[i];
+            if (food == null || food.IsUnlimited) continue;
+
+            var bonusDesc = BuildFoodBonusText(food);
+            entries.Add(new ShopEntry(
+                ShopCategory.Food,
+                $"food_{i}",
+                string.IsNullOrWhiteSpace(food.FoodName) ? $"Корм {i + 1}" : food.FoodName,
+                string.IsNullOrWhiteSpace(food.Description) ? bonusDesc : food.Description,
+                food.Price,
+                food.Icon,
+                $"{food.BatchSize} порций · {bonusDesc}",
+                foodTemplate: food,
+                capacityBonus: 0));
+        }
+
+        return entries;
+    }
+
+    private static string BuildFoodBonusText(FoodData food)
+    {
+        if (food.BreedChanceBonus > 0f)
+            return $"+{food.BreedChanceBonus * 100:F0}% размножение ({food.BoostDurationSec:F0}с)";
+        if (food.GrowthMultiplier > 1f)
+            return $"×{food.GrowthMultiplier:F0} рост ({food.BoostDurationSec:F0}с)";
+        return $"питание ×{food.NutritionValue / 2f:F0}";
     }
 
     private List<ShopEntry> BuildDecorCatalog()
     {
-        return new List<ShopEntry>();
+        var entries = new List<ShopEntry>
+        {
+            new ShopEntry(
+                ShopCategory.Decor,
+                "tank_medium",
+                "Большой аквариум",
+                "Просторный резервуар — больше места для рыб.",
+                500,
+                null,
+                "+5 слотов для рыб",
+                capacityBonus: 5),
+            new ShopEntry(
+                ShopCategory.Decor,
+                "tank_large",
+                "Огромный резервуар",
+                "Гигантский аквариум для настоящего коллекционера.",
+                2000,
+                null,
+                "+10 слотов для рыб",
+                capacityBonus: 10),
+        };
+
+        entries.Add(new ShopEntry(
+            ShopCategory.Decor,
+            "auto_feeder",
+            "Автокормушка",
+            "Автоматически кормит рыбок каждые 45 секунд. Если корм заканчивается — докупает сама.",
+            1000,
+            null,
+            "корм раз в 45 сек",
+            isAutoFeeder: true));
+
+        foreach (var decor in LoadDecorResources())
+        {
+            entries.Add(new ShopEntry(
+                ShopCategory.Decor,
+                $"decor_{decor.DecorId}",
+                decor.DecorName,
+                decor.Description,
+                decor.Price,
+                decor.Icon ?? _fallbackIcon,
+                $"+{decor.HappinessBonus:F0} счастья рыбок",
+                decorTemplate: decor));
+        }
+
+        return entries;
+    }
+
+    private static List<DecorData> LoadDecorResources()
+    {
+        const string decorDir = "res://assets/decor";
+        var result = new List<DecorData>();
+
+        if (!DirAccess.DirExistsAbsolute(decorDir))
+            return result;
+
+        using var dir = DirAccess.Open(decorDir);
+        if (dir == null) return result;
+
+        dir.ListDirBegin();
+        while (true)
+        {
+            var fileName = dir.GetNext();
+            if (string.IsNullOrEmpty(fileName)) break;
+            if (dir.CurrentIsDir()) continue;
+            if (!fileName.EndsWith(".tres") && !fileName.EndsWith(".res")) continue;
+
+            var decor = GD.Load<DecorData>($"{decorDir}/{fileName}");
+            if (decor != null) result.Add(decor);
+        }
+        dir.ListDirEnd();
+
+        return result;
     }
 
     private List<FishData> GetShopFishTemplates()
@@ -453,7 +568,7 @@ public partial class ShopPanel : PanelContainer
 
         CreateTopTab(topTabsRow, ShopCategory.Fish, "\u0440\u044b\u0431\u043a\u0438");
         CreateTopTab(topTabsRow, ShopCategory.Food, "\u0435\u0434\u0430");
-        CreateTopTab(topTabsRow, ShopCategory.Decor, "\u0434\u0435\u043a\u043e\u0440\u0430\u0446\u0438\u0438");
+        CreateTopTab(topTabsRow, ShopCategory.Decor, "\u0440\u0430\u0437\u043d\u043e\u0435");
 
         _categoryTabs = new TabContainer
         {
@@ -465,7 +580,7 @@ public partial class ShopPanel : PanelContainer
 
         BuildCategoryView(_categoryTabs, ShopCategory.Fish, "\u0440\u044b\u0431\u043a\u0438");
         BuildCategoryView(_categoryTabs, ShopCategory.Food, "\u0435\u0434\u0430");
-        BuildCategoryView(_categoryTabs, ShopCategory.Decor, "\u0434\u0435\u043a\u043e\u0440\u0430\u0446\u0438\u0438");
+        BuildCategoryView(_categoryTabs, ShopCategory.Decor, "\u0440\u0430\u0437\u043d\u043e\u0435");
     }
 
     private void CreateTopTab(HBoxContainer parent, ShopCategory category, string text)
@@ -656,7 +771,7 @@ public partial class ShopPanel : PanelContainer
 
     private static bool IsComingSoonCategory(ShopCategory category)
     {
-        return category == ShopCategory.Food || category == ShopCategory.Decor;
+        return false;
     }
     private void SetActiveCategory(ShopCategory category)
     {
@@ -802,13 +917,29 @@ public partial class ShopPanel : PanelContainer
     {
         var canAfford = gm?.CanAfford(entry.Price) ?? false;
         var validFishOffer = entry.Category != ShopCategory.Fish || ResolveFishTemplate(entry) != null;
-        var hasFishSlots = entry.Category != ShopCategory.Fish || (gm != null && gm.FishCount < gm.MaxFishCount);
+        var hasFishSlots = entry.Category != ShopCategory.Fish || (gm != null && gm.FishCount < gm.EffectiveMaxFishCount);
+        var alreadyOwned = entry.IsAutoFeeder
+            ? (gm?.HasAutoFeeder ?? false)
+            : entry.CapacityBonus > 0 && entry.DecorTemplate == null
+              && (gm?.GetOwnedShopItemCount(ToStorageCategory(entry.Category), entry.Name) ?? 0) > 0;
 
-        buyButton.Disabled = !canAfford || !validFishOffer || !hasFishSlots;
-        if (!hasFishSlots)
+        buyButton.Disabled = !canAfford || !validFishOffer || !hasFishSlots || alreadyOwned;
+        if (alreadyOwned)
+            buyButton.Text = "куплено";
+        else if (!hasFishSlots)
             buyButton.Text = BuyButtonNoSlotsText;
         else if (!canAfford)
             buyButton.Text = BuyButtonTooExpensiveText;
+        else if (entry.DecorTemplate != null)
+        {
+            var count = gm?.GetDecorCount(entry.DecorTemplate) ?? 0;
+            buyButton.Text = count > 0 ? $"купить ({count})" : BuyButtonDefaultText;
+        }
+        else if (entry.Category == ShopCategory.Food && entry.FoodTemplate != null)
+        {
+            var count = gm?.GetFoodCount(entry.FoodTemplate) ?? 0;
+            buyButton.Text = count > 0 ? $"купить ({count})" : BuyButtonDefaultText;
+        }
         else
             buyButton.Text = BuyButtonDefaultText;
     }
@@ -991,7 +1122,12 @@ public partial class ShopPanel : PanelContainer
 
         if (entry.Category != ShopCategory.Fish)
         {
-            var ownedCount = GameManager.Instance?.GetOwnedShopItemCount(ToStorageCategory(entry.Category), entry.Name) ?? 0;
+            int ownedCount;
+            if (entry.Category == ShopCategory.Food && entry.FoodTemplate != null)
+                ownedCount = GameManager.Instance?.GetFoodCount(entry.FoodTemplate) ?? 0;
+            else
+                ownedCount = GameManager.Instance?.GetOwnedShopItemCount(ToStorageCategory(entry.Category), entry.Name) ?? 0;
+
             var ownedLabel = new Label
             {
                 Text = $"\u0432 \u043d\u0430\u043b\u0438\u0447\u0438\u0438: {ownedCount}",
@@ -1029,9 +1165,23 @@ public partial class ShopPanel : PanelContainer
 
             purchased = gm.TryBuyFishOffer(fishTemplate, entry.Price, entry.Name);
         }
+        else if (entry.Category == ShopCategory.Food && entry.FoodTemplate != null)
+        {
+            purchased = gm.TryBuyFood(entry.FoodTemplate);
+        }
+        else if (entry.IsAutoFeeder)
+        {
+            purchased = gm.TryBuyAutoFeeder();
+        }
+        else if (entry.DecorTemplate != null)
+        {
+            purchased = gm.TryBuyDecor(entry.DecorTemplate);
+        }
         else
         {
             purchased = gm.TryBuyShopItem(entry.Name, entry.Price, ToStorageCategory(entry.Category));
+            if (purchased && entry.CapacityBonus > 0)
+                gm.AddFishCapacity(entry.CapacityBonus);
         }
 
         if (!purchased)

@@ -5,6 +5,9 @@ public partial class FoodParticle : Area2D
     [Export] public float FallSpeed = 30f;
     [Export] public float NutritionValue = 5f;
     [Export] public float LifetimeSec = 30f;
+    public float BreedChanceBonus { get; private set; }
+    public float GrowthMultiplier { get; private set; } = 1f;
+    public float BoostDurationSec { get; private set; }
 
     private float _age = 0f;
     private float _floorY;
@@ -15,6 +18,9 @@ public partial class FoodParticle : Area2D
     {
         FallSpeed = data.FallSpeed;
         NutritionValue = data.NutritionValue;
+        BreedChanceBonus = data.BreedChanceBonus;
+        GrowthMultiplier = data.GrowthMultiplier;
+        BoostDurationSec = data.BoostDurationSec;
         _floorY = floorY;
 
         _sprite = GetNodeOrNull<Sprite2D>("Sprite2D");

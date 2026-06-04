@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="DecorData" format=3 uid="uid://eg8nt62exbke"]
+
+[ext_resource type="Script" uid="uid://dtrjefts3n3i8" path="res://DecorData.cs" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://o7a7n61fy22y" path="res://assets/decor/castle-Photoroom.png" id="1_srrot"]
+
+[resource]
+script = ExtResource("1_script")
+DecorId = "castle"
+DecorName = "Подводный замок"
+Description = "Величественный замок на дне аквариума. Рыбки обожают прятаться в его башнях."
+Icon = ExtResource("1_srrot")
+DecorTexture = ExtResource("1_srrot")
+Price = 350
+HappinessBonus = 8.0
+PlacementZIndex = -50

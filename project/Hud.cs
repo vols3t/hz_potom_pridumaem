@@ -28,10 +28,15 @@ public partial class Hud : Control
     private global::MyFishPanel _myFishPanelScript;
     private global::BestiaryPanel _bestiaryPanelScript;
     private global::SettingsPanel _settingsPanelScript;
+    [Export] public WarehousePanel WarehousePanel;
+
+    private global::LeaderboardPanel _leaderboardPanel;
+    private global::WarehousePanel _warehousePanelScript;
 
     private float _previousMoney;
     private bool _hasMoneySnapshot;
     private float _smoothedNetFlowPerSec;
+    private Label _scoreLabel;
 
     public override void _Ready()
     {
@@ -39,18 +44,42 @@ public partial class Hud : Control
         if (CurrentFishBtn != null) CurrentFishBtn.Pressed += OnCurrentFishPressed;
         if (BestiaryBtn != null) BestiaryBtn.Pressed += OnBestiaryPressed;
         if (SettingBtn != null) SettingBtn.Pressed += OnSettingsPressed;
-        if (FeedBtn != null) FeedBtn.Pressed += OnFeedPressed;
+        if (FeedBtn != null) FeedBtn.Pressed += OnWarehousePressed;
 
         _shopPanelScript = ShopPanel as global::ShopPanel;
         _myFishPanelScript = MyFishPanel as global::MyFishPanel;
         _bestiaryPanelScript = BestiaryPanel as global::BestiaryPanel;
         _settingsPanelScript = SettingsPanel as global::SettingsPanel;
+        _warehousePanelScript = WarehousePanel;
 
         if (IncomeLabel != null)
         {
             IncomeLabel.CustomMinimumSize = new Vector2(340f, IncomeLabel.CustomMinimumSize.Y);
             IncomeLabel.HorizontalAlignment = HorizontalAlignment.Left;
             IncomeLabel.SizeFlagsHorizontal = Control.SizeFlags.Fill;
+        }
+
+        _scoreLabel = GetNodeOrNull<Label>("TopPanel/MarginContainer/HBoxContainer/pokahz");
+
+        _leaderboardPanel = new global::LeaderboardPanel { Visible = false };
+        AddChild(_leaderboardPanel);
+
+        var btnContainer = GetNodeOrNull<HBoxContainer>("RightPanel/MarginContainer/VBoxContainer");
+        if (btnContainer != null)
+        {
+            var leaderboardBtn = new Button
+            {
+                Text = "РЕЙТИНГ",
+                CustomMinimumSize = new Vector2(180, 82),
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+            };
+            leaderboardBtn.AddThemeStyleboxOverride("normal", UiTheme.BuildButtonStyle(new Color("1a3e5e"), new Color("4a7aa0"), 2, 10));
+            leaderboardBtn.AddThemeStyleboxOverride("hover", UiTheme.BuildButtonStyle(new Color("235070"), new Color("7ab3d8"), 2, 10));
+            leaderboardBtn.AddThemeStyleboxOverride("pressed", UiTheme.BuildButtonStyle(new Color("152e46"), new Color("7ab3d8"), 2, 10));
+            leaderboardBtn.AddThemeColorOverride("font_color", new Color("e0f0ff"));
+            leaderboardBtn.AddThemeFontSizeOverride("font_size", 16);
+            leaderboardBtn.Pressed += OnLeaderboardPressed;
+            btnContainer.AddChild(leaderboardBtn);
         }
 
         var gm = GameManager.Instance;
@@ -85,7 +114,7 @@ public partial class Hud : Control
             MoneyLabel.Text = $"Coins: {gm.Money:F0}";
 
         if (IncomeLabel != null)
-            IncomeLabel.Text = $"inc: {FormatSigned(_smoothedNetFlowPerSec)}";
+            IncomeLabel.Text = FormatSigned(_smoothedNetFlowPerSec);
 
         if (FishCountDisplay != null)
             FishCountDisplay.SetAmount(gm.FishCount);
@@ -99,6 +128,9 @@ public partial class Hud : Control
             if (RareCountLabel != null) RareCountLabel.Text = $"Rare: {rare}";
             if (UniqueCountLabel != null) UniqueCountLabel.Text = $"Unique: {unique}";
         }
+
+        if (_scoreLabel != null)
+            _scoreLabel.Text = $"Очки: {gm.GetAquariumScore()}";
     }
 
     private static string FormatSigned(float value)
@@ -129,6 +161,7 @@ public partial class Hud : Control
     private void OnCurrentFishPressed() => TogglePanel(_myFishPanelScript);
     private void OnBestiaryPressed() => TogglePanel(_bestiaryPanelScript);
     private void OnSettingsPressed() => TogglePanel(_settingsPanelScript);
+    private void OnLeaderboardPressed() => TogglePanel(_leaderboardPanel);
 
     private void TogglePanel(Control panel)
     {
@@ -145,6 +178,8 @@ public partial class Hud : Control
         if (panel != _myFishPanelScript) CallClose(_myFishPanelScript);
         if (panel != _bestiaryPanelScript) CallClose(_bestiaryPanelScript);
         if (panel != _settingsPanelScript) CallClose(_settingsPanelScript);
+        if (panel != _leaderboardPanel) CallClose(_leaderboardPanel);
+        if (panel != _warehousePanelScript) CallClose(_warehousePanelScript);
         CloseFishInfoPanel();
 
         CallOpen(panel);
@@ -158,6 +193,8 @@ public partial class Hud : Control
             case global::MyFishPanel m: m.OpenPanel(); break;
             case global::BestiaryPanel b: b.OpenPanel(); break;
             case global::SettingsPanel st: st.OpenPanel(); break;
+            case global::LeaderboardPanel lb: lb.OpenPanel(); break;
+            case global::WarehousePanel w: w.OpenPanel(); break;
         }
     }
 
@@ -171,20 +208,12 @@ public partial class Hud : Control
             case global::MyFishPanel m: m.ClosePanel(); break;
             case global::BestiaryPanel b: b.ClosePanel(); break;
             case global::SettingsPanel st: st.ClosePanel(); break;
+            case global::LeaderboardPanel lb: lb.ClosePanel(); break;
+            case global::WarehousePanel w: w.ClosePanel(); break;
         }
     }
 
-    private void OnFeedPressed()
-    {
-        var defaultFood = GD.Load<FoodData>("res://assets/meal/basic_food.tres");
-        if (defaultFood == null)
-        {
-            GD.PrintErr("Food resource not found!");
-            return;
-        }
-
-        FoodDropper.Instance?.StartDropMode(defaultFood);
-    }
+    private void OnWarehousePressed() => TogglePanel(_warehousePanelScript);
 
     private void CloseFishInfoPanel()
     {
@@ -198,6 +227,6 @@ public partial class Hud : Control
         if (CurrentFishBtn != null) CurrentFishBtn.Pressed -= OnCurrentFishPressed;
         if (BestiaryBtn != null) BestiaryBtn.Pressed -= OnBestiaryPressed;
         if (SettingBtn != null) SettingBtn.Pressed -= OnSettingsPressed;
-        if (FeedBtn != null) FeedBtn.Pressed -= OnFeedPressed;
+        if (FeedBtn != null) FeedBtn.Pressed -= OnWarehousePressed;
     }
 }
