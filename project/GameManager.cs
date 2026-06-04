@@ -96,13 +96,12 @@ public partial class GameManager : Node
     {
         AddChild(new DecorPlacer());
         LoadMutations();
-        Load();
+        // Load(); // saves disabled
     }
 
     public override void _Notification(int what)
     {
-        if (what == NotificationWMCloseRequest)
-            Save();
+        // if (what == NotificationWMCloseRequest) Save(); // saves disabled
     }
 
     public override void _Process(double delta)
@@ -127,12 +126,9 @@ public partial class GameManager : Node
             EvaluateMutations();
         }
 
-        _autosaveTimerSec += d;
-        if (_autosaveTimerSec >= AutosaveIntervalSec)
-        {
-            _autosaveTimerSec = 0f;
-            Save();
-        }
+        // autosave disabled
+        // _autosaveTimerSec += d;
+        // if (_autosaveTimerSec >= AutosaveIntervalSec) { _autosaveTimerSec = 0f; Save(); }
     }
 
     public void ConfigureAquarium(Node2D aquarium, FishData[] catalog, Vector2 spawnMin, Vector2 spawnMax)
@@ -146,6 +142,32 @@ public partial class GameManager : Node
         TryRestoreFishFromSave();
         if (_hasAutoFeeder) PlaceAutoFeeder();
         CallDeferred(nameof(SetupBubbleParticles));
+        StartBackgroundMusic();
+    }
+
+    // Spawns a story-only fish bypassing the fish cap and purchase flow
+    public Node2d SpawnStoryFish(FishData data)
+    {
+        if (_aquarium == null || data?.FishScene == null) return null;
+        var fishNode = data.FishScene.Instantiate<Node2D>();
+        if (fishNode is not Node2d fishScript) return null;
+        fishScript.SetupFromData(data, false); // false = start as adult
+        fishScript.SpriteFacesRight = true;
+        fishScript.IsClickable = false;
+        fishNode.Position = ClampToSpawnArea(GetRandomSpawnPosition());
+        _aquarium.AddChild(fishNode);
+
+        var predatorMutation = new FishMutation
+        {
+            MutationName = "Хищник",
+            MakesPredator = true,
+            SpeedMultiplier = 2.8f,
+            RequiresAdult = false
+        };
+        fishScript.AddMutation(predatorMutation);
+        fishScript.ForceHungry();
+        RegisterFish(fishScript);
+        return fishScript;
     }
 
     public void RegisterFish(Node2d fish)
@@ -194,6 +216,8 @@ public partial class GameManager : Node
         }
 
         LastEventText = $"Purchased {spawned.FishName} for {data.Price} coins";
+        StoryManager.Instance?.OnFishPurchased();
+        QuestManager.Instance?.NotifyFishPurchased();
         return true;
     }
 
@@ -220,6 +244,8 @@ public partial class GameManager : Node
 
         var purchasedName = string.IsNullOrWhiteSpace(offerName) ? spawned.FishName : offerName;
         LastEventText = $"Purchased {purchasedName} for {offerPrice} coins";
+        StoryManager.Instance?.OnFishPurchased();
+        QuestManager.Instance?.NotifyFishPurchased();
         return true;
     }
 
@@ -303,7 +329,10 @@ public partial class GameManager : Node
         var key = data.ResourcePath;
         var current = GetFoodCount(data);
         if (current > 0)
+        {
             _foodInventory[key] = current - 1;
+            QuestManager.Instance?.NotifyFishFed();
+        }
     }
 
     public bool CanAfford(float amount) => amount <= Money;
@@ -361,6 +390,22 @@ public partial class GameManager : Node
         _hasAutoFeeder = true;
         LastEventText = "Куплено: Автокормушка";
         PlaceAutoFeeder();
+        QuestManager.Instance?.NotifyAutoFeederBought();
+        return true;
+    }
+
+    // ── Новый аквариум (Квест 8) ──────────────────────────────────────────────
+
+    private bool _hasNewAquarium;
+    public bool HasNewAquarium => _hasNewAquarium;
+
+    public bool TryBuyAquarium(int price = 12000)
+    {
+        if (_hasNewAquarium) return false;
+        if (!SpendMoney(price)) return false;
+        _hasNewAquarium = true;
+        LastEventText = "Куплено: Новый аквариум";
+        QuestManager.Instance?.NotifyAquariumBought();
         return true;
     }
 
@@ -370,7 +415,8 @@ public partial class GameManager : Node
         if (_autoFeeder != null && IsInstanceValid(_autoFeeder)) return;
 
         var fd = FoodDropper.Instance;
-        var x = (fd?.AquariumLeft ?? 42f) + 48f;
+        var right = fd?.AquariumRight ?? 1395f;
+        var x = right - 48f;
         var y = (fd?.AquariumTop ?? 95f) + 130f;
 
         _autoFeeder = new AutoFeeder { Position = new Vector2(x, y), ZIndex = 2 };
@@ -398,6 +444,7 @@ public partial class GameManager : Node
         _decorInventory[data.ResourcePath] = GetDecorCount(data) - 1;
         var sprite = CreateDecorSprite(data, position);
         _placedDecorations.Add(new PlacedDecoration { Data = data, Position = position, Sprite = sprite });
+        QuestManager.Instance?.NotifyDecorationPlaced();
         return true;
     }
 
@@ -455,6 +502,52 @@ public partial class GameManager : Node
         var img = Image.CreateEmpty(size, size, false, Image.Format.Rgba8);
         img.Fill(color);
         return ImageTexture.CreateFromImage(img);
+    }
+
+    private AudioStreamPlayer _musicPlayer;
+
+    private const float MusicNormalDb  = -12f;
+    private const float MusicDuckedDb  = -30f;
+    private const float MusicFadeTime  = 0.4f;
+
+    private void StartBackgroundMusic()
+    {
+        if (_musicPlayer != null && IsInstanceValid(_musicPlayer)) return;
+        var stream = GD.Load<AudioStreamMP3>("res://assets/audio/background.mp3");
+        if (stream == null) { GD.PrintErr("[Audio] background.mp3 not found"); return; }
+        stream.Loop = true;
+        _musicPlayer = new AudioStreamPlayer { Stream = stream, VolumeDb = MusicNormalDb };
+        AddChild(_musicPlayer);
+        _musicPlayer.Play();
+    }
+
+    public void DuckMusic()   => FadeMusicTo(MusicDuckedDb);
+    public void UnduckMusic() => FadeMusicTo(MusicNormalDb);
+
+    public void StopMusic()
+    {
+        if (_musicPlayer == null || !IsInstanceValid(_musicPlayer)) return;
+        var tween = CreateTween();
+        tween.TweenProperty(_musicPlayer, "volume_db", -80f, 0.6f).SetTrans(Tween.TransitionType.Sine);
+        tween.TweenCallback(Callable.From(() => _musicPlayer.Stop()));
+    }
+
+    private void FadeMusicTo(float targetDb)
+    {
+        if (_musicPlayer == null || !IsInstanceValid(_musicPlayer)) return;
+        var tween = CreateTween();
+        tween.TweenProperty(_musicPlayer, "volume_db", targetDb, MusicFadeTime)
+             .SetTrans(Tween.TransitionType.Sine);
+    }
+
+    public static void PlaySfx(string path, float volumeDb = 0f)
+    {
+        var stream = GD.Load<AudioStream>(path);
+        if (stream == null) { GD.PrintErr($"[Audio] SFX not found: {path}"); return; }
+        var player = new AudioStreamPlayer { Stream = stream, VolumeDb = volumeDb };
+        Instance?.AddChild(player);
+        player.Play();
+        player.Finished += player.QueueFree;
     }
 
     private void SetupBubbleParticles()
@@ -1018,6 +1111,7 @@ public partial class GameManager : Node
     {
         var hud = GetTree().CurrentScene.GetNodeOrNull<Hud>("UI/HUD");
         hud?.OnFishClicked(fish);
+        QuestManager.Instance?.NotifyFishClicked();
     }
 
     public void Save()
@@ -1108,7 +1202,6 @@ public partial class GameManager : Node
         }
         config.SetValue("decor", "placed", placedDecorArray);
 
-        config.SetValue("autofeeder", "purchased", _hasAutoFeeder);
         config.SetValue("settings", "brightness", SettingsPanel.SavedBrightness);
         config.SetValue("settings", "sound", SettingsPanel.SavedSound);
 
@@ -1126,9 +1219,6 @@ public partial class GameManager : Node
             GD.Print($"[Save] No save file ({SaveFilePath}), starting fresh");
             return;
         }
-
-        if (config.HasSectionKey("autofeeder", "purchased"))
-            _hasAutoFeeder = config.GetValue("autofeeder", "purchased").AsBool();
 
         Money = Mathf.Max(300f, (float)(double)config.GetValue("economy", "money", 300.0));
         if (config.HasSectionKey("economy", "extra_fish_capacity"))

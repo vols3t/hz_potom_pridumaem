@@ -11,12 +11,16 @@ config_version=5
 [application]
 
 config/name="test"
-run/main_scene="res://aquarium.tscn"
+run/main_scene="res://MainMenu.tscn"
 config/features=PackedStringArray("4.6", "C#", "GL Compatibility")
 
 [autoload]
 
 GameManager="*uid://cflfd1xgi8hme"
+SceneManager="*res://SceneManager.cs"
+DialogueSystem="*res://DialogueSystem.cs"
+StoryManager="*res://StoryManager.cs"
+QuestManager="*res://QuestManager.cs"
 
 [display]
 

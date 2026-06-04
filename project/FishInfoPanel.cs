@@ -15,6 +15,7 @@ public partial class FishInfoPanel : PanelContainer
     [Export] public Button CloseBtn;
 
     private Node2d _selectedFish;
+    private Button _removeBtn;
 
     public override void _Ready()
     {
@@ -28,6 +29,26 @@ public partial class FishInfoPanel : PanelContainer
 
         if (NameEdit != null)
             NameEdit.TextSubmitted += OnNameSubmitted;
+
+        // Кнопка удаления — добавляем один раз, показываем только у хищников
+        _removeBtn = new Button
+        {
+            Text = "Убрать из аквариума",
+            Visible = false,
+            CustomMinimumSize = new Vector2(0, 32)
+        };
+        _removeBtn.AddThemeStyleboxOverride("normal",  UiTheme.BuildButtonStyle(new Color(0.5f, 0.1f, 0.1f), new Color(0.8f, 0.3f, 0.3f), 2, 6));
+        _removeBtn.AddThemeStyleboxOverride("hover",   UiTheme.BuildButtonStyle(new Color(0.65f, 0.15f, 0.15f), new Color(1f, 0.5f, 0.5f), 2, 6));
+        _removeBtn.AddThemeStyleboxOverride("pressed", UiTheme.BuildButtonStyle(new Color(0.35f, 0.07f, 0.07f), new Color(1f, 0.5f, 0.5f), 2, 6));
+        _removeBtn.AddThemeColorOverride("font_color", new Color(1f, 0.85f, 0.85f));
+        _removeBtn.AddThemeFontSizeOverride("font_size", 15);
+        _removeBtn.Pressed += OnRemovePressed;
+
+        // Вставляем перед CloseBtn, если он есть в дереве, иначе просто AddChild
+        if (CloseBtn != null && CloseBtn.GetParent() is Container closeBtnParent)
+            closeBtnParent.AddChild(_removeBtn);
+        else
+            AddChild(_removeBtn);
     }
 
     public override void _Process(double delta)
@@ -55,6 +76,9 @@ public partial class FishInfoPanel : PanelContainer
 
         if (NameEdit != null)
             NameEdit.Text = fish.FishName;
+
+        if (_removeBtn != null)
+            _removeBtn.Visible = fish.IsPredator;
 
         UpdateInfo();
         FollowFish();
@@ -191,6 +215,18 @@ public partial class FishInfoPanel : PanelContainer
             targetY = 0;
 
         GlobalPosition = new Vector2(targetX, targetY);
+    }
+
+    private void OnRemovePressed()
+    {
+        if (_selectedFish == null || !IsInstanceValid(_selectedFish)) return;
+        var gm = GameManager.Instance;
+        if (gm != null)
+        {
+            gm.UnregisterFish(_selectedFish);
+            _selectedFish.QueueFree();
+        }
+        Close();
     }
 
     private void OnRenamePressed()

@@ -6,13 +6,24 @@ public partial class AutoFeeder : Node2D
     public static AutoFeeder Instance { get; private set; }
 
     private const float FeedIntervalSec = 18f;
-    private static readonly Vector2 FeederHalfSize = new(32f, 36f);
 
-    private float _timer = FeedIntervalSec * 0.5f; // первый дроп через 22 сек
+    private const float IconDisplaySize = 256f;
+    private const float BarHeight       = 7f;
+    private const float BarMargin       = 4f;
+
+    // Половина ширины бара (чуть уже иконки)
+    private static float HalfBarW => IconDisplaySize * 0.5f;
+
+    private float _timer = FeedIntervalSec * 0.5f;
     private FoodData[] _catalog;
     private FoodData _selectedFood;
-
     private CanvasLayer _panelLayer;
+    private Sprite2D _iconSprite;
+
+    // Имена файлов иконок для каждого типа корма
+    private const string IconBasic    = "res://assets/decor/feeder-basic.png";
+    private const string IconGrowth   = "res://assets/decor/feeder-growth.png";
+    private const string IconBreeding = "res://assets/decor/feeder-breeding.png";
 
     public override void _EnterTree() => Instance = this;
     public override void _ExitTree() { if (Instance == this) Instance = null; }
@@ -21,29 +32,43 @@ public partial class AutoFeeder : Node2D
     {
         _catalog = ScanFoodCatalog();
         _selectedFood = _catalog.Length > 0 ? _catalog[0] : null;
+
+        // иконка центрирована, бар прямо под ней
+        _iconSprite = new Sprite2D { Position = new Vector2(0f, -( BarMargin + BarHeight) * 0.5f) };
+        AddChild(_iconSprite);
+        UpdateIcon();
+
         QueueRedraw();
+    }
+
+    private static string GetIconPath(FoodData food)
+    {
+        if (food == null) return IconBasic;
+        if (food.BreedChanceBonus > 0f) return IconBreeding;
+        if (food.GrowthMultiplier > 1f) return IconGrowth;
+        return IconBasic;
+    }
+
+    private void UpdateIcon()
+    {
+        if (_iconSprite == null) return;
+        var path = GetIconPath(_selectedFood);
+        if (!ResourceLoader.Exists(path)) { _iconSprite.Texture = null; return; }
+        var tex = GD.Load<Texture2D>(path);
+        if (tex == null) { _iconSprite.Texture = null; return; }
+        _iconSprite.Texture = tex;
+        var scale = IconDisplaySize / Mathf.Max(tex.GetSize().X, tex.GetSize().Y);
+        _iconSprite.Scale = new Vector2(scale, scale);
     }
 
     public override void _Draw()
     {
-        var body = new Rect2(-FeederHalfSize, FeederHalfSize * 2f);
-        DrawRect(body, new Color(0.18f, 0.35f, 0.55f, 0.92f), true);
-        DrawRect(body, new Color(0.45f, 0.75f, 1f, 0.8f), false, 2f);
-
-        // Горлышко кормушки (треугольник снизу)
-        var spout = new Vector2[] {
-            new(-10f, FeederHalfSize.Y),
-            new(10f, FeederHalfSize.Y),
-            new(0f, FeederHalfSize.Y + 12f)
-        };
-        DrawColoredPolygon(spout, new Color(0.18f, 0.35f, 0.55f, 0.92f));
-        DrawPolyline(new Vector2[] { spout[0], spout[2], spout[1] }, new Color(0.45f, 0.75f, 1f, 0.8f), 2f);
-
-        // Прогресс-полоска (насколько скоро следующий корм)
+        // Только прогресс-бар под иконкой, никакого фона
+        var barY  = IconDisplaySize * 0.5f + BarMargin - (BarMargin + BarHeight) * 0.5f;
+        var barBg = new Rect2(-HalfBarW, barY, HalfBarW * 2f, BarHeight);
+        DrawRect(barBg, new Color(0f, 0f, 0f, 0.45f), true);
         var progress = Mathf.Clamp(_timer / FeedIntervalSec, 0f, 1f);
-        var barBg = new Rect2(-FeederHalfSize.X + 6f, FeederHalfSize.Y - 10f, (FeederHalfSize.X * 2f) - 12f, 6f);
-        DrawRect(barBg, new Color(0f, 0f, 0f, 0.4f), true);
-        DrawRect(new Rect2(barBg.Position, new Vector2(barBg.Size.X * progress, barBg.Size.Y)),
+        DrawRect(new Rect2(barBg.Position, new Vector2(barBg.Size.X * progress, BarHeight)),
             new Color(0.3f, 0.9f, 0.5f, 0.9f), true);
     }
 
@@ -64,7 +89,8 @@ public partial class AutoFeeder : Node2D
         if (@event is InputEventMouseButton mb && mb.ButtonIndex == MouseButton.Left && mb.Pressed)
         {
             var localPos = ToLocal(GetViewport().GetMousePosition());
-            var bounds = new Rect2(-FeederHalfSize, FeederHalfSize * 2f + new Vector2(0, 12f));
+            var half = IconDisplaySize * 0.5f;
+            var bounds = new Rect2(-half, -half, IconDisplaySize, IconDisplaySize + BarMargin + BarHeight);
             if (bounds.HasPoint(localPos))
             {
                 TogglePanel();
@@ -84,7 +110,7 @@ public partial class AutoFeeder : Node2D
             if (!gm.TryBuyFood(_selectedFood)) return;
         }
 
-        fd.SpawnFoodAt(_selectedFood, new Vector2(Position.X, Position.Y + FeederHalfSize.Y + 12f));
+        fd.SpawnFoodAt(_selectedFood, new Vector2(Position.X, Position.Y + IconDisplaySize * 0.5f + BarMargin + BarHeight + 8f));
         gm.ConsumeFood(_selectedFood);
     }
 
@@ -152,6 +178,7 @@ public partial class AutoFeeder : Node2D
             btn.Pressed += () =>
             {
                 _selectedFood = f;
+                UpdateIcon();
                 RefreshPanelButtons(_panelLayer);
             };
             vbox.AddChild(btn);

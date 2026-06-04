@@ -31,7 +31,11 @@ public static class Localization
         { "Rename", "Переименовать" },
         
         { "Glutton", "Обжора" },
-        { "Predator", "Хищник" }
+        { "Predator", "Хищник" },
+        { "predator", "Хищник" },
+        { "fat", "Ожирение" },
+        { "Хищник", "Хищник" },
+        { "Ожирение", "Ожирение" }
     };
 
     public static string T(string key)

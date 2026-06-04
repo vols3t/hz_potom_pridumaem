@@ -12,4 +12,3 @@ Icon = ExtResource("1_srrot")
 DecorTexture = ExtResource("1_srrot")
 Price = 350
 HappinessBonus = 8.0
-PlacementZIndex = -50

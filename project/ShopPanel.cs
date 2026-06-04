@@ -46,6 +46,7 @@ public partial class ShopPanel : PanelContainer
         public readonly DecorData DecorTemplate;
         public readonly int CapacityBonus;
         public readonly bool IsAutoFeeder;
+        public readonly bool IsAquarium;
 
         public ShopEntry(
             ShopCategory category,
@@ -59,7 +60,8 @@ public partial class ShopPanel : PanelContainer
             int capacityBonus = 0,
             FoodData foodTemplate = null,
             DecorData decorTemplate = null,
-            bool isAutoFeeder = false)
+            bool isAutoFeeder = false,
+            bool isAquarium = false)
         {
             Category = category;
             Id = id;
@@ -73,6 +75,7 @@ public partial class ShopPanel : PanelContainer
             FoodTemplate = foodTemplate;
             DecorTemplate = decorTemplate;
             IsAutoFeeder = isAutoFeeder;
+            IsAquarium = isAquarium;
         }
     }
 
@@ -103,7 +106,7 @@ public partial class ShopPanel : PanelContainer
     private readonly Dictionary<ShopCategory, List<KeyValuePair<ShopEntry, Button>>> _buyCardsByCategory = new();
     private const string BuyButtonDefaultText = "купить";
     private const string BuyButtonNoSlotsText = "лимит";
-    private const string BuyButtonTooExpensiveText = "дорого";
+    private const string BuyButtonTooExpensiveText = "Недостаточно денег";
 
     private Texture2D _fallbackIcon;
     private Label _coinsValueLabel;
@@ -246,37 +249,33 @@ public partial class ShopPanel : PanelContainer
 
     private List<ShopEntry> BuildDecorCatalog()
     {
-        var entries = new List<ShopEntry>
-        {
-            new ShopEntry(
-                ShopCategory.Decor,
-                "tank_medium",
-                "Большой аквариум",
-                "Просторный резервуар — больше места для рыб.",
-                500,
-                null,
-                "+5 слотов для рыб",
-                capacityBonus: 5),
-            new ShopEntry(
-                ShopCategory.Decor,
-                "tank_large",
-                "Огромный резервуар",
-                "Гигантский аквариум для настоящего коллекционера.",
-                2000,
-                null,
-                "+10 слотов для рыб",
-                capacityBonus: 10),
-        };
+        var entries = new List<ShopEntry>();
+
+        Texture2D feederIcon = null;
+        foreach (var p in new[]{ "res://assets/decor/feeder-basic.png", "res://assets/decor/feeder-icon.png" })
+            if (ResourceLoader.Exists(p)) { feederIcon = GD.Load<Texture2D>(p); break; }
+        feederIcon ??= _fallbackIcon;
 
         entries.Add(new ShopEntry(
             ShopCategory.Decor,
             "auto_feeder",
             "Автокормушка",
-            "Автоматически кормит рыбок каждые 45 секунд. Если корм заканчивается — докупает сама.",
+            "Автоматически кормит рыбок каждые 18 секунд. Если корм заканчивается — докупает сама.",
             1000,
-            null,
-            "корм раз в 45 сек",
+            feederIcon,
+            "корм раз в 18 сек",
             isAutoFeeder: true));
+
+        var aquariumIcon = GD.Load<Texture2D>("res://assets/decor/bigaquarium.png") ?? _fallbackIcon;
+        entries.Add(new ShopEntry(
+            ShopCategory.Decor,
+            "new_aquarium",
+            "Новый аквариум",
+            "Просторный аквариум для настоящего коллекционера рыб.",
+            12000,
+            aquariumIcon,
+            "открывает Главу 2",
+            isAquarium: true));
 
         foreach (var decor in LoadDecorResources())
         {
@@ -918,14 +917,20 @@ public partial class ShopPanel : PanelContainer
         var canAfford = gm?.CanAfford(entry.Price) ?? false;
         var validFishOffer = entry.Category != ShopCategory.Fish || ResolveFishTemplate(entry) != null;
         var hasFishSlots = entry.Category != ShopCategory.Fish || (gm != null && gm.FishCount < gm.EffectiveMaxFishCount);
+        var autoFeederLocked = entry.IsAutoFeeder && !(QuestManager.Instance?.IsAutoFeederUnlocked ?? false);
+
         var alreadyOwned = entry.IsAutoFeeder
             ? (gm?.HasAutoFeeder ?? false)
+            : entry.IsAquarium
+            ? (gm?.HasNewAquarium ?? false)
             : entry.CapacityBonus > 0 && entry.DecorTemplate == null
               && (gm?.GetOwnedShopItemCount(ToStorageCategory(entry.Category), entry.Name) ?? 0) > 0;
 
-        buyButton.Disabled = !canAfford || !validFishOffer || !hasFishSlots || alreadyOwned;
+        buyButton.Disabled = !canAfford || !validFishOffer || !hasFishSlots || alreadyOwned || autoFeederLocked;
         if (alreadyOwned)
             buyButton.Text = "куплено";
+        else if (autoFeederLocked)
+            buyButton.Text = "недоступно";
         else if (!hasFishSlots)
             buyButton.Text = BuyButtonNoSlotsText;
         else if (!canAfford)
@@ -1172,6 +1177,10 @@ public partial class ShopPanel : PanelContainer
         else if (entry.IsAutoFeeder)
         {
             purchased = gm.TryBuyAutoFeeder();
+        }
+        else if (entry.IsAquarium)
+        {
+            purchased = gm.TryBuyAquarium();
         }
         else if (entry.DecorTemplate != null)
         {

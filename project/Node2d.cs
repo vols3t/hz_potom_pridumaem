@@ -25,6 +25,9 @@ public partial class Node2d : CharacterBody2D
     private bool _isSeekingFood = false;
     private float _satiation = 0f;
     private float _eatCooldownTimer = 0f;
+    private Node2d _targetPrey = null;
+    private float _preyScanTimer = 0f;
+    private const float PreyScanInterval = 0.5f;
     private bool _isHybrid = false;
     public bool IsHybrid => _isHybrid;
     private float _hybridIncome = 0f;
@@ -62,10 +65,11 @@ public partial class Node2d : CharacterBody2D
     private bool _isHit;
     private AnimationPlayer _anim;
     public event Action<Node2d> Clicked;
+    public bool IsClickable { get; set; } = true;
 
     public void EmitClicked()
     {
-        Clicked?.Invoke(this);
+        if (IsClickable) Clicked?.Invoke(this);
     }
 
     public override void _InputEvent(Viewport viewport, InputEvent @event, int shapeIdx)
@@ -74,7 +78,7 @@ public partial class Node2d : CharacterBody2D
             && mouseBtn.ButtonIndex == MouseButton.Left
             && mouseBtn.Pressed)
         {
-            Clicked?.Invoke(this);
+            if (IsClickable) Clicked?.Invoke(this);
             viewport.SetInputAsHandled();
         }
     }
@@ -170,7 +174,7 @@ public partial class Node2d : CharacterBody2D
             return;
         }
 
-        var movingToFood = MoveTowardsFood();
+        var movingToFood = IsPredator ? SeekPrey(d) : MoveTowardsFood();
 
         if (!movingToFood)
         {
@@ -496,6 +500,8 @@ public partial class Node2d : CharacterBody2D
         TimeSinceLastFed = 0f;
         _cooldownTimer = CollisionCooldown;
 
+        BloodParticle.Spawn(GetParent(), prey.GlobalPosition);
+        GameManager.Instance?.UnregisterFish(prey);
         prey.QueueFree();
     }
 
@@ -742,17 +748,62 @@ public partial class Node2d : CharacterBody2D
         return true;
     }
 
+    private const float FeederOrbitRadius = 180f;
+
     private bool MoveTowardsFeeder()
     {
         var feeder = AutoFeeder.Instance;
         if (feeder == null || TimeSinceLastFed < 25f) return false;
 
+        // Уже в зоне — отпускаем, рыба плавает рандомно вокруг
+        if (GlobalPosition.DistanceTo(feeder.GlobalPosition) <= FeederOrbitRadius)
+            return false;
+
+        // Плывём к краю зоны вокруг кормушки, не в саму точку
         var dir = GlobalPosition.DirectionTo(feeder.GlobalPosition);
         _direction = dir;
         ApplyVisualDirection(_direction);
         return true;
     }
 
+
+    private bool SeekPrey(float delta)
+    {
+        _preyScanTimer -= delta;
+        if (_preyScanTimer <= 0f || !IsInstanceValid(_targetPrey))
+        {
+            _preyScanTimer = PreyScanInterval;
+            _targetPrey = FindNearestPrey();
+        }
+
+        if (!IsInstanceValid(_targetPrey)) return false;
+
+        _direction = GlobalPosition.DirectionTo(_targetPrey.GlobalPosition).Normalized();
+        ApplyVisualDirection(_direction);
+        return true;
+    }
+
+    private Node2d FindNearestPrey()
+    {
+        var snapshot = GameManager.Instance?.GetFishSnapshot();
+        if (snapshot == null) return null;
+
+        Node2d nearest = null;
+        var nearestDistSq = float.MaxValue;
+        foreach (var fish in snapshot)
+        {
+            if (fish == this || fish.IsPredator) continue;
+            var d = GlobalPosition.DistanceSquaredTo(fish.GlobalPosition);
+            if (d < nearestDistSq) { nearestDistSq = d; nearest = fish; }
+        }
+        return nearest;
+    }
+
+    public void ForceHungry()
+    {
+        TimeSinceLastFed = 100f;
+        _satiation = 0f;
+    }
 
     public float OverfedAmount { get; private set; } = 0f;
     public float BreedChanceBonus { get; private set; } = 0f;
